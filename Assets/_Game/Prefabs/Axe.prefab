@@ -90,8 +90,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.7796671, y: 1.0583303, z: 0.02}
-  m_Center: {x: 0.045793917, y: -0.09953751, z: 0.00060488295}
+  m_Size: {x: 0.7796671, y: 0.65, z: 0.02}
+  m_Center: {x: 0.045793917, y: 0.11, z: 0.00060488295}
 --- !u!54 &5717792011750789940
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -133,6 +133,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
   poolType: 2
   flySpeed: 50
-  rotateDuration: 0.2
+  rotateDuration: 0.4
   isStick: 0
   rotation: {x: 0, y: -90, z: 0}

@@ -38,7 +38,7 @@ public class Sliceable : MonoBehaviour
                         projectiles[i].gameObject.SetActive(false);
                     }
                 }
-                Observer.OnCuttingMultipObject?.Invoke(tfs);
+                Observer.OnCuttingMultipObject?.Invoke(tfs, transform);
                 projectiles.Clear();
             }
             else

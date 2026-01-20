@@ -9,56 +9,39 @@ public class Cutting : MonoBehaviour
     [Tooltip("Màu mặc định nếu vật thể không có script Sliceable")]
     public Material defaultCrossSectionMaterial;
     public float explosionForce = 100f;
-    // public List<Transform> activePlanes;
 
-    // // --- HÀM PUBLIC: GỌI TỪ BÊN NGOÀI ĐỂ CẮT ---
-    // // SkillController hoặc MouseSlicer sẽ gọi hàm này và truyền danh sách dao vào
-    // void Update()
-    // {
-    //     if (Input.GetKeyDown(KeyCode.Space))
-    //     {
-    //         PerformSlice(activePlanes);
-    //     }
-    // }
-    public void PerformSlice(List<Transform> activePlanes)
+    // --- SỬA ĐỔI CHÍNH Ở ĐÂY ---
+    // Hàm nhận vào:
+    // 1. activePlanes: Danh sách các lưỡi rừu/dao
+    // 2. objectCut: Đối tượng cụ thể cần bị cắt (bạn truyền từ bên ngoài vào)
+    public void PerformSlice(List<Transform> activePlanes, Transform objectCut)
     {
-        if (activePlanes == null || activePlanes.Count == 0) return;
-        // Dùng plane đầu tiên làm mốc để quét va chạm
-        Transform mainPlane = activePlanes[0];
+        Debug.Log(activePlanes.Count);
+        // 1. Kiểm tra dữ liệu đầu vào
+        if (activePlanes == null || activePlanes.Count == 0 || objectCut == null) return;
 
-        // Tạo vùng quét (Box) quanh lưỡi dao
-        // Bạn có thể chỉnh size (2f, 2f, 2f) to nhỏ tùy vũ khí
-        Collider[] hits = Physics.OverlapBox(mainPlane.position, new Vector3(2f, 2f, 2f), mainPlane.rotation, layerToCut);
+        // 2. Kiểm tra xem đối tượng có script Sliceable và cho phép cắt không
+        Sliceable sliceData = objectCut.GetComponent<Sliceable>();
+        if (sliceData != null && !sliceData.canBeCut) return;
 
-        if (hits.Length == 0) return;
-
-        foreach (Collider hit in hits)
+        // 3. Chọn vật liệu lõi (Internal Material)
+        Material matToUse = defaultCrossSectionMaterial;
+        if (sliceData != null && sliceData.internalMaterial != null)
         {
-            GameObject target = hit.gameObject;
-
-            // Kiểm tra xem vật này có cho phép cắt và có màu ruột riêng không
-            Sliceable sliceData = target.GetComponent<Sliceable>();
-            Material matToUse = defaultCrossSectionMaterial;
-
-            if (sliceData != null)
-            {
-                if (!sliceData.canBeCut) continue; // Bỏ qua nếu không cho cắt
-                if (sliceData.internalMaterial != null) matToUse = sliceData.internalMaterial;
-            }
-
-            // Bắt đầu quy trình cắt đa điểm
-            ProcessMultiSlice(target, activePlanes, matToUse);
+            matToUse = sliceData.internalMaterial;
         }
+
+        // 4. Thực hiện quy trình cắt ngay lập tức cho đối tượng này
+        // Không cần vòng lặp OverlapBox hay HashSet nữa
+        ProcessMultiSlice(objectCut.gameObject, activePlanes, matToUse);
     }
 
     // --- QUY TRÌNH XỬ LÝ ĐA ĐIỂM (TUẦN TỰ) ---
     private void ProcessMultiSlice(GameObject startingTarget, List<Transform> planes, Material mat)
     {
-        // Danh sách các vật thể cần cắt (Ban đầu chỉ có 1)
         List<GameObject> targetsToSlice = new List<GameObject>();
         targetsToSlice.Add(startingTarget);
 
-        // Duyệt qua từng lưỡi dao
         foreach (Transform plane in planes)
         {
             List<GameObject> nextBatchTargets = new List<GameObject>();
@@ -66,16 +49,13 @@ public class Cutting : MonoBehaviour
             foreach (GameObject target in targetsToSlice)
             {
                 // Cắt target bằng plane hiện tại
-                // Nếu cắt thành công, hàm SliceSingleTarget sẽ thêm 2 mảnh mới vào nextBatchTargets
                 bool sliced = SliceSingleTarget(target, plane, nextBatchTargets, mat);
 
-                // Nếu dao trượt (không cắt được), giữ lại vật đó cho vòng sau
                 if (!sliced)
                 {
                     nextBatchTargets.Add(target);
                 }
             }
-            // Cập nhật danh sách mục tiêu cho dao tiếp theo
             targetsToSlice = nextBatchTargets;
         }
     }
@@ -88,23 +68,37 @@ public class Cutting : MonoBehaviour
         Vector3 originalPos = target.transform.position;
         Quaternion originalRot = target.transform.rotation;
 
-        // Lưu 2 loại scale để fix lỗi phình to
-        Vector3 originalLocalScale = target.transform.localScale; // Dùng cho mảnh dính lại
-        Vector3 originalWorldScale = target.transform.lossyScale; // Dùng cho mảnh rơi ra
+        Vector3 originalLocalScale = target.transform.localScale;
+        Vector3 originalWorldScale = target.transform.lossyScale;
+
+        // --- TÍNH TOÁN VỊ TRÍ CẮT CHUẨN XÁC ---
+        // Thay vì dùng tâm cán rừu (plane.position), ta tìm điểm trên bề mặt object gần rừu nhất
+        // Điều này giúp vết cắt luôn nằm đúng chỗ va chạm
+        Vector3 cutPosition = plane.position;
+        Collider targetCol = target.GetComponent<Collider>();
+        if (targetCol != null)
+        {
+            cutPosition = targetCol.ClosestPoint(plane.position);
+        }
+        else
+        {
+            cutPosition = target.transform.position;
+        }
 
         // 2. THỰC HIỆN CẮT (EzySlice)
-        SlicedHull hull = target.Slice(plane.position, plane.forward, mat);
+        // Dùng cutPosition vừa tính được làm tâm cắt
+        SlicedHull hull = target.Slice(cutPosition, plane.forward, mat);
 
         if (hull != null)
         {
             GameObject upperHull = hull.CreateUpperHull(target, mat);
             GameObject lowerHull = hull.CreateLowerHull(target, mat);
 
-            // Setup vật lý cơ bản (Tạm dùng World Scale để tính toán Collider chuẩn)
+            // Setup vật lý cơ bản
             SetupHull(upperHull, originalPos, originalRot, originalWorldScale);
             SetupHull(lowerHull, originalPos, originalRot, originalWorldScale);
 
-            // 3. XÁC ĐỊNH MẢNH GỐC (DÍNH) VÀ MẢNH RƠI (PIVOT RULE)
+            // 3. XÁC ĐỊNH MẢNH GỐC VÀ MẢNH RƠI
             GameObject rootPart, fallPart;
             DecideRootAndFall(target, plane, upperHull, lowerHull, out rootPart, out fallPart);
 
@@ -112,43 +106,35 @@ public class Cutting : MonoBehaviour
             if (originalParent != null)
             {
                 rootPart.name = target.name;
-                rootPart.transform.SetParent(originalParent, true); // Giữ nguyên vị trí thế giới
-
-                // [QUAN TRỌNG] Trả lại Scale nội bộ (Local) để nó tương thích với cha
-                rootPart.transform.localScale = originalLocalScale;
+                rootPart.transform.SetParent(originalParent, true);
+                rootPart.transform.localScale = originalLocalScale; // Trả lại Scale Local
             }
             else
             {
-                // Nếu không có cha, nó hoạt động như mảnh rơi
                 rootPart.name = target.name;
                 rootPart.transform.localScale = originalWorldScale;
             }
-
-            // Copy lại component Sliceable sang mảnh gốc để có thể cắt tiếp
             CopySliceableConfig(target, rootPart);
 
             // 5. XỬ LÝ MẢNH RƠI (Tự do)
             fallPart.name = target.name + "_Broken";
             fallPart.transform.parent = null;
-
-            // [QUAN TRỌNG] Gán Scale toàn cầu (World) vì nó không còn cha
             fallPart.transform.localScale = originalWorldScale;
-
             CopySliceableConfig(target, fallPart);
 
             // 6. CHUYỂN CON CÁI (Reparent Children)
-            ReparentChildren(target, rootPart, fallPart, plane);
+            // Truyền cutPosition (vị trí cắt thực tế) để tính toán con cái chuẩn xác
+            ReparentChildren(target, upperHull, lowerHull, plane.forward, cutPosition);
 
-            // 7. Thêm vào kết quả trả về
+            // 7. Hoàn tất
             results.Add(rootPart);
             results.Add(fallPart);
 
-            // Xóa vật cũ
             Destroy(target);
-            return true; // Báo thành công
+            return true;
         }
 
-        return false; // Báo thất bại
+        return false;
     }
 
     // --- HÀM PHỤ TRỢ: SETUP VẬT LÝ ---
@@ -159,28 +145,33 @@ public class Cutting : MonoBehaviour
         hull.transform.localScale = scale;
 
         hull.AddComponent<BoxCollider>();
+
         Rigidbody rb = hull.AddComponent<Rigidbody>();
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.AddExplosionForce(explosionForce, pos, 1f);
 
-        // Set lại Layer để có thể bị cắt tiếp ở vòng sau
         if (layerToCut.value > 0)
         {
-            int layerIndex = (int)Mathf.Log(layerToCut.value, 2);
+            // Chuyển bitmask layer về index integer
+            int layerIndex = 0;
+            int layerValue = layerToCut.value;
+            while (layerValue > 1)
+            {
+                layerValue >>= 1;
+                layerIndex++;
+            }
+
             hull.layer = layerIndex;
+            hull.tag = "Enemy";
         }
     }
 
-    // --- HÀM PHỤ TRỢ: QUYẾT ĐỊNH GỐC/RƠI (PIVOT) ---
+    // --- HÀM PHỤ TRỢ: QUYẾT ĐỊNH GỐC/RƠI ---
     private void DecideRootAndFall(GameObject target, Transform plane, GameObject upper, GameObject lower, out GameObject root, out GameObject fall)
     {
-        // Tính xem Tâm (Pivot) của vật cũ nằm bên nào dao
         Vector3 pivotDirection = target.transform.position - plane.position;
         float pivotSide = Vector3.Dot(pivotDirection, plane.up);
 
-        // [LOGIC ĐẢO NGƯỢC THEO YÊU CẦU CỦA BẠN]
-        // Nếu Pivot nằm bên Dương -> Gán Lower làm Gốc (Ngược lại logic thông thường)
-        // Bạn có thể đổi chỗ if/else nếu thấy nó bị sai với model của bạn
         if (pivotSide >= 0)
         {
             root = lower;
@@ -193,36 +184,36 @@ public class Cutting : MonoBehaviour
         }
     }
 
-    // --- HÀM PHỤ TRỢ: CHUYỂN CON ---
-    private void ReparentChildren(GameObject oldParent, GameObject rootPart, GameObject fallPart, Transform plane)
+    // --- [SỬA ĐỔI] ReparentChildren dùng Plane toán học tại điểm cắt ---
+    private void ReparentChildren(GameObject originalTarget, GameObject upperHull, GameObject lowerHull, Vector3 planeNormal, Vector3 planePos)
     {
-        List<Transform> children = new List<Transform>();
-        foreach (Transform child in oldParent.transform) children.Add(child);
+        // Tạo mặt phẳng toán học tại đúng vị trí va chạm
+        UnityEngine.Plane slicePlane = new UnityEngine.Plane(planeNormal, planePos);
 
-        foreach (Transform child in children)
+        for (int i = originalTarget.transform.childCount - 1; i >= 0; i--)
         {
-            // Kiểm tra vị trí của Con so với Plane
-            Vector3 childDir = child.position - plane.position;
-            float childSide = Vector3.Dot(childDir, plane.up);
+            Transform child = originalTarget.transform.GetChild(i);
 
-            // Kiểm tra vị trí của Mảnh Gốc so với Plane
-            float rootSide = Vector3.Dot(rootPart.transform.position - plane.position, plane.up);
+            if (child.name.Contains("_Broken")) continue;
 
-            // So sánh phe: Nếu cùng dấu (cùng âm hoặc cùng dương) -> Về cùng đội
-            bool isChildSameSideAsRoot = (childSide >= 0) == (rootSide >= 0);
-
-            if (isChildSameSideAsRoot)
+            Vector3 checkPos = child.position;
+            Renderer childRend = child.GetComponent<Renderer>();
+            if (childRend != null)
             {
-                child.SetParent(rootPart.transform, true);
+                checkPos = childRend.bounds.center;
+            }
+
+            if (slicePlane.GetSide(checkPos))
+            {
+                child.SetParent(upperHull.transform, true);
             }
             else
             {
-                child.SetParent(fallPart.transform, true);
+                child.SetParent(lowerHull.transform, true);
             }
         }
     }
 
-    // --- HÀM PHỤ TRỢ: COPY DỮ LIỆU SLICEABLE ---
     private void CopySliceableConfig(GameObject source, GameObject dest)
     {
         Sliceable sourceData = source.GetComponent<Sliceable>();
@@ -231,16 +222,15 @@ public class Cutting : MonoBehaviour
             Sliceable destData = dest.AddComponent<Sliceable>();
             destData.internalMaterial = sourceData.internalMaterial;
             destData.canBeCut = sourceData.canBeCut;
+            destData.currentHitCountMax = 0;
         }
     }
-
     void OnEnable()
     {
-        Observer.OnCuttingMultipObject += PerformSlice;
+        Observer.OnCuttingMultipObject += PerformSlice; // Cần sửa delegate này
     }
-
     void OnDisable()
     {
-        Observer.OnCuttingMultipObject += PerformSlice;
+        Observer.OnCuttingMultipObject -= PerformSlice;
     }
 }

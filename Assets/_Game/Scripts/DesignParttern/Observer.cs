@@ -4,5 +4,5 @@ using UnityEngine.Events;
 
 public static class Observer
 {
-    public static UnityAction<List<Transform>> OnCuttingMultipObject;
+    public static UnityAction<List<Transform>, Transform> OnCuttingMultipObject;
 }

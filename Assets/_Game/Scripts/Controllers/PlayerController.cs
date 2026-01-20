@@ -87,22 +87,27 @@ public class PlayerController : MonoBehaviour
 
         if (axe != null)
         {
-            // 1. Set kích thước
             axe.transform.localScale = Vector3.one * scale;
 
-            // Lấy biến toàn cục startMousePos và endMousePos
-            Vector2 direction = endMousePos - startMousePos;
+            // 1. Tính Vector hướng
+            Vector2 direction = startMousePos - endMousePos;
 
-            // --- SỬA LỖI NGƯỢC HƯỚNG ---
-            // Thêm dấu trừ (-) phía trước để đảo chiều xoay
-            float dragAngle = -Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            // 2. Tính góc (Dùng Atan2 để phân biệt trái phải)
+            // Mathf.Atan2(x, y) trả về góc so với trục dọc (trục Y)
+            // *Lưu ý: Unity dùng (x, y) cho góc so với trục Y (hướng Bắc), 
+            // khác với toán học thuần túy (y, x) là so với trục X.
+            float angle = Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg;
+            // --- KẾT QUẢ BẠN SẼ NHẬN ĐƯỢC ---
+            // Kéo thẳng lên: 0 độ
+            // Kéo sang phải (90 độ): ~90 độ
+            // Kéo sang trái (-90 độ): ~-90 độ
+            // Kéo chéo phải-xuống: ~135 độ
+            // Kéo chéo trái-xuống: ~-135 độ
 
-            // Mẹo phụ: Nếu rìu mặc định đang đứng thẳng (Up), mà Atan2 tính theo hướng ngang (Right),
-            // bạn có thể cần cộng/trừ thêm 90 độ nếu thấy nó bị vuông góc so với đường vẽ.
-            // Ví dụ: float dragAngle = -Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90;
-
-            // 2. Kích hoạt ném vòng cung
-            axe.InitializeArcThrow(targetPosition, powerRatio, dragAngle);
+            // 3. Đảo dấu (Nếu bạn thấy nó bị ngược chiều xoay)
+            float finalAngle = -angle;
+            // Gọi hàm
+            axe.InitializeArcThrow(targetPosition, powerRatio, finalAngle);
         }
     }
 

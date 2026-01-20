@@ -94,10 +94,6 @@ public class Projectile : GameUnit
             {
                 hasHit = true;
 
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-                rb.isKinematic = true;
-
                 // --- DỪNG XOAY KHI TRÚNG ---
                 StopSpinning();
 
@@ -110,7 +106,8 @@ public class Projectile : GameUnit
     {
         // Đảm bảo dừng xoay lần nữa cho chắc
         StopSpinning();
-
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         rb.isKinematic = true;
         col.isTrigger = true;
         isStick = true;
