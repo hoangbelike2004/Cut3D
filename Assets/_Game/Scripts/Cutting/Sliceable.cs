@@ -10,16 +10,24 @@ public class Sliceable : MonoBehaviour
     [Header("Trạng thái (Debug)")]
 
     public int currentHitCountMax = 3;
+
+    public int damage;
     private int currentHitCount = 0; // Đếm số lần trúng
+
+    private Enemy parent;
     public bool isBroken = false;   // Đánh dấu xem đã bị vỡ lần đầu chưa
 
     List<Projectile> projectiles = new List<Projectile>();
     List<Projectile> projectilesOnPeople = new List<Projectile>();
-
+    void Start()
+    {
+        OnInit();
+    }
     public void OnInit()
     {
         isBroken = false;
         currentHitCount = 0;
+        parent = GetComponentInParent<Enemy>();
     }
     public void AddProjectiles(Projectile projectile)
     {
@@ -43,6 +51,7 @@ public class Sliceable : MonoBehaviour
             }
             else
             {
+                Debug.Log(1);
                 projectile.StickProjectile(transform);
             }
         }

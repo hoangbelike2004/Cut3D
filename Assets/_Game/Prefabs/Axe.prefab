@@ -132,7 +132,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
   poolType: 2
-  flySpeed: 50
+  flyStraight: 0
+  flySpeed: 20
   rotateDuration: 0.4
+  lifeTime: 5
+  bounceDistance: 10
+  bounceDuration: 1
+  wallLayer:
+    serializedVersion: 2
+    m_Bits: 128
   isStick: 0
   rotation: {x: 0, y: -90, z: 0}
