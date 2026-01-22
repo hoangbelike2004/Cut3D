@@ -10,12 +10,17 @@ public class Cutting : MonoBehaviour
     public Material defaultCrossSectionMaterial;
     public float explosionForce = 100f;
 
-    // --- HÀM GỌI TỪ BÊN NGOÀI ---
+    // Biến này bạn khai báo nhưng chưa dùng, nếu muốn dùng Root của cả con quái thì dùng biến này,
+    // nhưng tốt nhất là dùng originalParent (cha trực tiếp) để chuẩn hierarchy.
+    private Transform parent => transform.root;
+
     public void PerformSlice(List<Transform> activePlanes, Transform objectCut)
     {
         if (activePlanes == null || activePlanes.Count == 0 || objectCut == null) return;
+
         Sliceable sliceData = objectCut.GetComponent<Sliceable>();
         if (sliceData != null && !sliceData.canBeCut) return;
+
         Material matToUse = (sliceData != null && sliceData.internalMaterial != null) ? sliceData.internalMaterial : defaultCrossSectionMaterial;
         ProcessMultiSlice(objectCut.gameObject, activePlanes, matToUse);
     }
@@ -37,6 +42,9 @@ public class Cutting : MonoBehaviour
 
     private bool SliceSingleTarget(GameObject target, Transform plane, List<GameObject> results, Material mat)
     {
+        Sliceable sliceData = target.GetComponent<Sliceable>();
+        bool isHead = sliceData != null && sliceData.isHead;
+
         Transform originalParent = target.transform.parent;
         Vector3 originalPos = target.transform.position;
         Quaternion originalRot = target.transform.rotation;
@@ -45,7 +53,8 @@ public class Cutting : MonoBehaviour
 
         Rigidbody originalRb = target.GetComponent<Rigidbody>();
         ConfigurableJoint originalJoint = target.GetComponent<ConfigurableJoint>();
-        bool isRagdoll = originalJoint != null || target.GetComponentInChildren<ConfigurableJoint>() != null;
+
+        bool isRagdoll = originalJoint != null || target.GetComponentInChildren<ConfigurableJoint>() != null || isHead;
 
         Vector3 cutPosition = plane.position;
         Collider targetCol = target.GetComponent<Collider>();
@@ -62,55 +71,89 @@ public class Cutting : MonoBehaviour
             GameObject rootPart, fallPart;
             DecideRootAndFall(target, plane, upperHull, lowerHull, out rootPart, out fallPart);
 
-            // Setup Vật lý (Dùng cú pháp Unity 6)
             SetupHull(rootPart, originalPos, originalRot, originalWorldScale, false, originalRb);
             SetupHull(fallPart, originalPos, originalRot, originalWorldScale, true, originalRb);
 
-            // Reparent RootPart
+            // --- REPARENT ROOT ---
             if (originalParent != null)
             {
-                rootPart.name = target.name;
+                rootPart.name = target.name + "1";
                 rootPart.transform.SetParent(originalParent, true);
                 rootPart.transform.localScale = originalLocalScale;
             }
             else
             {
-                rootPart.name = target.name;
+                rootPart.name = target.name + "1";
                 rootPart.transform.localScale = originalWorldScale;
             }
-            CopySliceableConfig(target, rootPart);
+            CopySliceableConfig(target, rootPart, true);
 
-            // Setup FallPart
+            // --- REPARENT FALL (SỬA LẠI ĐỂ NỐI VÀO PARENT) ---
             fallPart.name = target.name + "_Broken";
-            fallPart.transform.parent = null;
-            fallPart.transform.localScale = originalWorldScale;
-            CopySliceableConfig(target, fallPart);
+
+            // SỬA: Kiểm tra nếu có cha cũ thì gán vào cha cũ, thay vì vứt ra ngoài null
+            if (originalParent != null)
+            {
+                fallPart.transform.SetParent(originalParent, true);
+                fallPart.transform.localScale = originalLocalScale; // Giữ scale theo cha
+            }
+            else
+            {
+                fallPart.transform.parent = null;
+                fallPart.transform.localScale = originalWorldScale;
+            }
+
+            CopySliceableConfig(target, fallPart, false);
 
             ReparentChildren(target, upperHull, lowerHull, plane.forward, cutPosition);
 
-            // XỬ LÝ RAGDOLL
+            // --- XỬ LÝ KHỚP NỐI ---
             if (isRagdoll)
             {
                 CopyAllComponents(target, rootPart);
-
-                if (originalParent != null && originalJoint != null)
+                if (originalJoint != null)
                 {
-                    ConnectRootToParent(rootPart, originalParent, originalJoint);
+                    ReconnectJoint(rootPart, originalJoint);
                 }
-
                 ConnectChildrenToHull(fallPart);
                 ConnectChildrenToHull(rootPart);
             }
 
             results.Add(rootPart);
             results.Add(fallPart);
-            Destroy(target);
+            target.gameObject.SetActive(false);
             return true;
         }
         return false;
     }
 
-    // --- SETUP RIGIDBODY THEO CHUẨN UNITY 6 ---
+    private void DecideRootAndFall(GameObject target, Transform plane, GameObject upper, GameObject lower, out GameObject root, out GameObject fall)
+    {
+        Vector3 checkPoint = target.transform.position;
+        ConfigurableJoint joint = target.GetComponent<ConfigurableJoint>();
+
+        if (joint != null && joint.connectedBody != null) checkPoint = joint.connectedBody.transform.position;
+        else if (target.transform.parent != null) checkPoint = target.transform.parent.position;
+        else if (joint != null) checkPoint = target.transform.TransformPoint(joint.anchor);
+
+        UnityEngine.Plane slicePlane = new UnityEngine.Plane(plane.forward, plane.position);
+        bool bodyIsOnUpperSide = slicePlane.GetSide(checkPoint);
+
+        if (bodyIsOnUpperSide) { root = upper; fall = lower; }
+        else { root = lower; fall = upper; }
+    }
+
+    private void ReconnectJoint(GameObject rootPart, ConfigurableJoint originalJoint)
+    {
+        Rigidbody connectedBody = originalJoint.connectedBody;
+        ConfigurableJoint existing = rootPart.GetComponent<ConfigurableJoint>();
+        if (existing != null) DestroyImmediate(existing);
+
+        ConfigurableJoint newJoint = rootPart.AddComponent<ConfigurableJoint>();
+        newJoint.connectedBody = connectedBody;
+        CopyJointProperties(originalJoint, newJoint);
+    }
+
     private void SetupHull(GameObject hull, Vector3 pos, Quaternion rot, Vector3 scale, bool isAddforce, Rigidbody originalRb)
     {
         hull.transform.position = pos;
@@ -121,33 +164,21 @@ public class Cutting : MonoBehaviour
 
         Rigidbody rb = hull.GetComponent<Rigidbody>();
         if (rb == null) rb = hull.AddComponent<Rigidbody>();
-
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        // [CẬP NHẬT UNITY 6] Sử dụng linearVelocity và linearDamping
         if (originalRb != null)
         {
             rb.mass = originalRb.mass;
             rb.useGravity = originalRb.useGravity;
-
-            // Unity 6: drag -> linearDamping
             rb.linearDamping = originalRb.linearDamping;
-            // Unity 6: angularDrag -> angularDamping
             rb.angularDamping = originalRb.angularDamping;
         }
 
-        if (isAddforce)
+        if (isAddforce) rb.AddExplosionForce(explosionForce, pos, 1f);
+        else if (originalRb != null)
         {
-            rb.AddExplosionForce(explosionForce, pos, 1f);
-        }
-        else
-        {
-            if (originalRb != null)
-            {
-                // Unity 6: velocity -> linearVelocity
-                rb.linearVelocity = originalRb.linearVelocity;
-                rb.angularVelocity = originalRb.angularVelocity;
-            }
+            rb.linearVelocity = originalRb.linearVelocity;
+            rb.angularVelocity = originalRb.angularVelocity;
         }
 
         if (layerToCut.value > 0)
@@ -159,22 +190,6 @@ public class Cutting : MonoBehaviour
         }
     }
 
-    // --- NỐI ROOT VÀO CHA CŨ ---
-    private void ConnectRootToParent(GameObject rootPart, Transform parent, ConfigurableJoint originalJoint)
-    {
-        Rigidbody parentRb = parent.GetComponent<Rigidbody>();
-        if (parentRb == null) return;
-
-        ConfigurableJoint existing = rootPart.GetComponent<ConfigurableJoint>();
-        if (existing != null) DestroyImmediate(existing);
-
-        ConfigurableJoint newJoint = rootPart.AddComponent<ConfigurableJoint>();
-        newJoint.connectedBody = parentRb;
-
-        CopyJointProperties(originalJoint, newJoint);
-    }
-
-    // --- COPY JOINT (FULL THÔNG SỐ) ---
     private void CopyJointProperties(ConfigurableJoint source, ConfigurableJoint dest)
     {
         dest.autoConfigureConnectedAnchor = false;
@@ -182,79 +197,32 @@ public class Cutting : MonoBehaviour
         dest.connectedAnchor = source.connectedAnchor;
         dest.axis = source.axis;
         dest.secondaryAxis = source.secondaryAxis;
-
         dest.xMotion = source.xMotion;
         dest.yMotion = source.yMotion;
         dest.zMotion = source.zMotion;
         dest.angularXMotion = source.angularXMotion;
         dest.angularYMotion = source.angularYMotion;
         dest.angularZMotion = source.angularZMotion;
-
         dest.linearLimit = source.linearLimit;
         dest.lowAngularXLimit = source.lowAngularXLimit;
         dest.highAngularXLimit = source.highAngularXLimit;
         dest.angularYLimit = source.angularYLimit;
         dest.angularZLimit = source.angularZLimit;
-
         dest.xDrive = source.xDrive;
         dest.yDrive = source.yDrive;
         dest.zDrive = source.zDrive;
         dest.angularXDrive = source.angularXDrive;
         dest.angularYZDrive = source.angularYZDrive;
         dest.slerpDrive = source.slerpDrive;
-
-        // Projection giúp chống tuột khớp trong Unity 6
         dest.projectionMode = JointProjectionMode.PositionAndRotation;
         dest.projectionDistance = 0.01f;
         dest.projectionAngle = 1f;
-
         dest.configuredInWorldSpace = source.configuredInWorldSpace;
         dest.swapBodies = source.swapBodies;
         dest.enableCollision = source.enableCollision;
         dest.enablePreprocessing = source.enablePreprocessing;
         dest.massScale = source.massScale;
         dest.connectedMassScale = source.connectedMassScale;
-    }
-
-    // --- HELPER FUNCTIONS ---
-    private void DecideRootAndFall(GameObject target, Transform plane, GameObject upper, GameObject lower, out GameObject root, out GameObject fall)
-    {
-        // 1. Xác định "Điểm Neo" (Anchor Point) - Điểm này nằm ở đâu thì đó là phần gốc (Root)
-        Vector3 anchorPoint = target.transform.position; // Mặc định là tâm
-
-        ConfigurableJoint joint = target.GetComponent<ConfigurableJoint>();
-        if (joint != null)
-        {
-            // Nếu có Joint, điểm quan trọng nhất là vị trí khớp nối
-            // Chuyển đổi Anchor từ Local sang World
-            anchorPoint = target.transform.TransformPoint(joint.anchor);
-        }
-        else if (target.transform.parent != null)
-        {
-            // Nếu không có Joint nhưng có cha, điểm neo là vị trí của cha
-            // (Phần nào nằm cùng phía với cha thì giữ lại)
-            anchorPoint = target.transform.parent.position;
-        }
-
-        // 2. Tạo mặt phẳng toán học để kiểm tra
-        // LƯU Ý QUAN TRỌNG: Trong hàm SliceSingleTarget bạn dùng 'plane.forward' để cắt
-        // nên ở đây BẮT BUỘC phải dùng 'plane.forward' để tính toán (không dùng plane.up)
-        UnityEngine.Plane slicePlane = new UnityEngine.Plane(plane.forward, plane.position);
-
-        // 3. Kiểm tra xem Điểm Neo nằm ở bên nào (Upper hay Lower)
-        // GetSide trả về true nếu điểm nằm ở phía dương của pháp tuyến (Upper Hull)
-        bool anchorIsOnUpperSide = slicePlane.GetSide(anchorPoint);
-
-        if (anchorIsOnUpperSide)
-        {
-            root = upper;
-            fall = lower;
-        }
-        else
-        {
-            root = lower;
-            fall = upper;
-        }
     }
 
     private void ReparentChildren(GameObject originalTarget, GameObject upperHull, GameObject lowerHull, Vector3 planeNormal, Vector3 planePos)
@@ -291,7 +259,8 @@ public class Cutting : MonoBehaviour
             System.Type type = comp.GetType();
             if (type == typeof(Transform) || type == typeof(MeshFilter) || type == typeof(MeshRenderer) ||
                 type == typeof(Collider) || type == typeof(BoxCollider) || type == typeof(SphereCollider) || type == typeof(CapsuleCollider) ||
-                type == typeof(Rigidbody) || type == typeof(ConfigurableJoint))
+                type == typeof(Rigidbody) || type == typeof(ConfigurableJoint) ||
+                type == typeof(Sliceable))
             {
                 continue;
             }
@@ -309,7 +278,7 @@ public class Cutting : MonoBehaviour
         return copy;
     }
 
-    private void CopySliceableConfig(GameObject source, GameObject dest)
+    private void CopySliceableConfig(GameObject source, GameObject dest, bool isRoot)
     {
         Sliceable sourceData = source.GetComponent<Sliceable>();
         if (sourceData != null)
@@ -317,7 +286,18 @@ public class Cutting : MonoBehaviour
             Sliceable destData = dest.AddComponent<Sliceable>();
             destData.internalMaterial = sourceData.internalMaterial;
             destData.canBeCut = sourceData.canBeCut;
-            destData.currentHitCountMax = 0;
+            destData.isHead = sourceData.isHead;
+            destData.SetParentOld(sourceData.GetParentOld);
+
+            if (isRoot && sourceData.isHead)
+            {
+                if (sourceData.GetParent != null && sourceData.GetParent.objectCamFolow != null)
+                {
+                    Transform tf = sourceData.GetParent.objectCamFolow.transform;
+                    tf.SetParent(dest.transform);
+                    tf.localPosition = Vector3.zero;
+                }
+            }
         }
     }
 

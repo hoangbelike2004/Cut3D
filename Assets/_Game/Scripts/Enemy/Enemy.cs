@@ -17,14 +17,25 @@ public class Enemy : MonoBehaviour
     public float stepRate = 0.3f;
     public float stopDistance = 1.0f; // Khoảng cách dừng lại
 
+
+    [Header("Đối tượng mà camera sẽ flow")]
+    public Transform objectCamFolow;
     private float timer;
-    private bool moveLeft = true;
+    private bool moveLeft = true, isDie;
+
+    private Level level;
+
+    void Awake()
+    {
+        level = transform.root.GetComponent<Level>();
+        level.AddEnemy(this);
+    }
 
     void FixedUpdate()
     {
         // 1. KIỂM TRA ĐIỀU KIỆN BAN ĐẦU
         // Nếu biến isMoving bị tắt -> Dừng ngay lập tức
-        if (!isMoving || target == null || hip == null) return;
+        if (!isMoving || target == null || hip == null || isDie) return;
 
         // 2. KIỂM TRA KHOẢNG CÁCH
         // Tính khoảng cách trên mặt phẳng (bỏ qua trục Y)
@@ -35,6 +46,7 @@ public class Enemy : MonoBehaviour
         if (distance < stopDistance)
         {
             isMoving = false;
+            GameController.Instance.ReplayGame();
             return;
         }
 
@@ -62,10 +74,22 @@ public class Enemy : MonoBehaviour
 
     public void Hit(int dame)
     {
+        if (isDie) return;
         hp -= dame;
-        if (hp < 0)
+        if (hp <= 0)
         {
-            Debug.Log("Win");
+            isDie = true;
+            level.RemoveEnemy(this);
         }
+    }
+
+    public void SetTarget(Transform target)
+    {
+        this.target = target;
+    }
+
+    public void SetMoving()
+    {
+        isMoving = true;
     }
 }

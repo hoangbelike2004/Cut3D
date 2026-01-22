@@ -8,16 +8,15 @@ public class PlayerController : MonoBehaviour
     public float maxDragDistance = 400f;
 
     [Tooltip("Khoảng cách kéo tối thiểu. Nếu ngắn hơn mức này sẽ không ném.")]
-    public float minDragDistance = 50f; // <--- MỚI: Ngưỡng kiểm tra
+    public float minDragDistance = 10f; // <--- MỚI: Ngưỡng kiểm tra
 
     [Header("Cài đặt Vũ Khí")]
-    public float minScale = 0.5f;
-    public float maxScale = 2.5f;
+    public float minScale = 0.25f;
+    public float maxScale = 1.5f;
 
     [Header("Cài đặt Hiển thị (Line)")]
     public float distanceFromCamera = 5f; // Khoảng cách vẽ Line trước Camera
-    public float lineWidth = 0.05f;
-
+    public float lineWidth = 0.025f;
     // Biến lưu trạng thái chuột
     private Vector2 startMousePos;
     private Vector2 endMousePos;
@@ -27,10 +26,12 @@ public class PlayerController : MonoBehaviour
     private Camera mainCamera;
     private LineRenderer lineRenderer; // <--- MỚI: Biến LineRenderer
 
+    private Level _level;
     void Start()
     {
         mainCamera = Camera.main;
-
+        _level = transform.root.GetComponent<Level>();
+        _level.SetPlayer(this);
         // Setup LineRenderer
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.positionCount = 2; // Chỉ cần điểm đầu và cuối

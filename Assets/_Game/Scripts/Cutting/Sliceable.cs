@@ -9,13 +9,20 @@ public class Sliceable : MonoBehaviour
 
     [Header("Trạng thái (Debug)")]
 
-    public int currentHitCountMax = 3;
+    public int currentHitCountMax = 0;
 
     public int damage;
+
+    public bool isBroken = false;   // Đánh dấu xem đã bị vỡ lần đầu chưa
+
+    public bool isHead = false;
+
+    public bool isHip = false;
     private int currentHitCount = 0; // Đếm số lần trúng
 
     private Enemy parent;
-    public bool isBroken = false;   // Đánh dấu xem đã bị vỡ lần đầu chưa
+
+    private Sliceable sliceable;//thang ban dau khi chua bi cat
 
     List<Projectile> projectiles = new List<Projectile>();
     List<Projectile> projectilesOnPeople = new List<Projectile>();
@@ -27,12 +34,13 @@ public class Sliceable : MonoBehaviour
     {
         isBroken = false;
         currentHitCount = 0;
-        parent = GetComponentInParent<Enemy>();
+        if (parent == null) parent = GetComponentInParent<Enemy>();
     }
     public void AddProjectiles(Projectile projectile)
     {
         if (!projectiles.Contains(projectile))
         {
+            if (parent != null) parent.SetMoving();
             projectiles.Add(projectile);
             currentHitCount++;
             isBroken = currentHitCount > currentHitCountMax ? true : false;
@@ -46,14 +54,25 @@ public class Sliceable : MonoBehaviour
                         projectiles[i].gameObject.SetActive(false);
                     }
                 }
+                parent.Hit(projectiles.Count * damage);
                 Observer.OnCuttingMultipObject?.Invoke(tfs, transform);
                 projectiles.Clear();
             }
             else
             {
-                Debug.Log(1);
                 projectile.StickProjectile(transform);
             }
         }
     }
+
+    public void SetParentOld(Sliceable sliceable)
+    {
+        this.sliceable = sliceable;
+        this.damage = sliceable.damage;
+        this.parent = sliceable.GetParent;
+    }
+
+    public Sliceable GetParentOld => sliceable != null ? sliceable : this;
+
+    public Enemy GetParent => parent;
 }
