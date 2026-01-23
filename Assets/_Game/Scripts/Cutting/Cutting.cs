@@ -10,8 +10,6 @@ public class Cutting : MonoBehaviour
     public Material defaultCrossSectionMaterial;
     public float explosionForce = 100f;
 
-    // Biến này bạn khai báo nhưng chưa dùng, nếu muốn dùng Root của cả con quái thì dùng biến này,
-    // nhưng tốt nhất là dùng originalParent (cha trực tiếp) để chuẩn hierarchy.
     private Transform parent => transform.root;
 
     public void PerformSlice(List<Transform> activePlanes, Transform objectCut)
@@ -45,6 +43,10 @@ public class Cutting : MonoBehaviour
         Sliceable sliceData = target.GetComponent<Sliceable>();
         bool isHead = sliceData != null && sliceData.isHead;
 
+        // Lưu lại thông tin Enemy cũ trước khi cắt
+        Enemy originalEnemy = target.GetComponentInParent<Enemy>();
+        GameObject headObject = (originalEnemy != null) ? originalEnemy.GetHeadObject() : null;
+
         Transform originalParent = target.transform.parent;
         Vector3 originalPos = target.transform.position;
         Quaternion originalRot = target.transform.rotation;
@@ -61,6 +63,7 @@ public class Cutting : MonoBehaviour
         if (targetCol != null) cutPosition = targetCol.ClosestPoint(plane.position);
         else cutPosition = target.transform.position;
 
+        // --- CẮT ---
         SlicedHull hull = target.Slice(cutPosition, plane.forward, mat);
 
         if (hull != null)
@@ -68,13 +71,16 @@ public class Cutting : MonoBehaviour
             GameObject upperHull = hull.CreateUpperHull(target, mat);
             GameObject lowerHull = hull.CreateLowerHull(target, mat);
 
+            // Báo cáo mất bộ phận (như cũ)
+            if (originalEnemy != null) originalEnemy.RemovePart(target);
+
             GameObject rootPart, fallPart;
             DecideRootAndFall(target, plane, upperHull, lowerHull, out rootPart, out fallPart);
 
             SetupHull(rootPart, originalPos, originalRot, originalWorldScale, false, originalRb);
             SetupHull(fallPart, originalPos, originalRot, originalWorldScale, true, originalRb);
 
-            // --- REPARENT ROOT ---
+            // --- REPARENT (Giữ nguyên logic cũ) ---
             if (originalParent != null)
             {
                 rootPart.name = target.name + "1";
@@ -88,33 +94,71 @@ public class Cutting : MonoBehaviour
             }
             CopySliceableConfig(target, rootPart, true);
 
-            // --- REPARENT FALL (SỬA LẠI ĐỂ NỐI VÀO PARENT) ---
             fallPart.name = target.name + "_Broken";
-
-            // SỬA: Kiểm tra nếu có cha cũ thì gán vào cha cũ, thay vì vứt ra ngoài null
             if (originalParent != null)
             {
                 fallPart.transform.SetParent(originalParent, true);
-                fallPart.transform.localScale = originalLocalScale; // Giữ scale theo cha
+                fallPart.transform.localScale = originalLocalScale;
             }
             else
             {
                 fallPart.transform.parent = null;
                 fallPart.transform.localScale = originalWorldScale;
             }
-
             CopySliceableConfig(target, fallPart, false);
 
+            // --- DI CHUYỂN CON CÁI (QUAN TRỌNG) ---
+            // Bước này sẽ đưa Đầu, Tay, Chân về phe rootPart hoặc fallPart
             ReparentChildren(target, upperHull, lowerHull, plane.forward, cutPosition);
 
-            // --- XỬ LÝ KHỚP NỐI ---
+            // =========================================================================
+            // [LOGIC MỚI]: TÌM ĐẦU ĐỂ TRAO SỰ SỐNG
+            // =========================================================================
+
+            // Mặc định copy Enemy cho cả 2 để đảm bảo không bị lỗi reference ban đầu
+            // (Nếu object gốc có Enemy thì mới copy)
+            if (target.GetComponent<Enemy>() != null)
+            {
+                // Copy script Enemy sang cả 2 mảnh (để tạm)
+                CopyComponent(target.GetComponent<Enemy>(), rootPart);
+                CopyComponent(target.GetComponent<Enemy>(), fallPart);
+            }
+
+            // Bây giờ ta làm trọng tài: Ai giữ cái Đầu thì người đó được sống (giữ script Enemy)
+            // Kẻ kia phải chết (Xóa script Enemy)
+            if (headObject != null)
+            {
+                bool headInRoot = headObject.transform.IsChildOf(rootPart.transform);
+                bool headInFall = headObject.transform.IsChildOf(fallPart.transform);
+
+                if (headInRoot)
+                {
+                    // Root giữ Đầu -> Root sống -> Fall chết
+                    DestroyEnemyScript(fallPart);
+                }
+                else if (headInFall)
+                {
+                    // Fall giữ Đầu -> Fall sống -> Root chết
+                    DestroyEnemyScript(rootPart);
+                }
+                else
+                {
+                    // Trường hợp hiếm: Cái đầu không nằm trong cả 2 (có thể đầu bị cắt bay ra chỗ khác rồi)
+                    // Thì xử lý theo logic cũ (Fall chết)
+                    DestroyEnemyScript(fallPart);
+                }
+            }
+            else
+            {
+                // Không tìm thấy đầu (ví dụ cắt cái tay, cái chân lẻ) -> Fall chết
+                DestroyEnemyScript(fallPart);
+            }
+            // =========================================================================
+
             if (isRagdoll)
             {
                 CopyAllComponents(target, rootPart);
-                if (originalJoint != null)
-                {
-                    ReconnectJoint(rootPart, originalJoint);
-                }
+                if (originalJoint != null) ReconnectJoint(rootPart, originalJoint);
                 ConnectChildrenToHull(fallPart);
                 ConnectChildrenToHull(rootPart);
             }
@@ -127,6 +171,14 @@ public class Cutting : MonoBehaviour
         return false;
     }
 
+    // Hàm phụ trợ xóa script Enemy
+    private void DestroyEnemyScript(GameObject obj)
+    {
+        Enemy e = obj.GetComponent<Enemy>();
+        if (e != null) Destroy(e);
+    }
+
+    // --- CÁC HÀM PHỤ TRỢ KHÁC (GIỮ NGUYÊN) ---
     private void DecideRootAndFall(GameObject target, Transform plane, GameObject upper, GameObject lower, out GameObject root, out GameObject fall)
     {
         Vector3 checkPoint = target.transform.position;
@@ -257,10 +309,12 @@ public class Cutting : MonoBehaviour
         foreach (var comp in components)
         {
             System.Type type = comp.GetType();
+            // CHÚ Ý: Đã bỏ "Enemy" ra khỏi danh sách loại trừ, vì ta cần copy nó rồi mới quyết định xóa sau
             if (type == typeof(Transform) || type == typeof(MeshFilter) || type == typeof(MeshRenderer) ||
                 type == typeof(Collider) || type == typeof(BoxCollider) || type == typeof(SphereCollider) || type == typeof(CapsuleCollider) ||
                 type == typeof(Rigidbody) || type == typeof(ConfigurableJoint) ||
-                type == typeof(Sliceable))
+                type == typeof(Sliceable) ||
+                type == typeof(Enemy)) // <-- Vẫn giữ ở đây để Copy thủ công cho an toàn
             {
                 continue;
             }

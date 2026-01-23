@@ -83,4 +83,9 @@ public class CameraFlow : MonoBehaviour
         // 1. Tìm thằng gần Camera nhất
         currentTarget = GetNearestTarget(transform.position);
     }
+
+    public void Clear()
+    {
+        tfsFlow.Clear();
+    }
 }

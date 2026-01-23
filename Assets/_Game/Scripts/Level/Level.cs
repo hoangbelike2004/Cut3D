@@ -36,4 +36,9 @@ public class Level : MonoBehaviour
             GameController.Instance.GameComplete();
         }
     }
+
+    public void ResetLevel()
+    {
+        cameraFlow.Clear();
+    }
 }

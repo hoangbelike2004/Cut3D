@@ -520,6 +520,14 @@ PrefabInstance:
       propertyPath: isMoving
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 970231693274267780, guid: 2123a06213fd54a3f9e3a586fc39393d, type: 3}
+      propertyPath: moveForce
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 970231693274267780, guid: 2123a06213fd54a3f9e3a586fc39393d, type: 3}
+      propertyPath: walkSpeed
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 1170433557221400225, guid: 2123a06213fd54a3f9e3a586fc39393d, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 

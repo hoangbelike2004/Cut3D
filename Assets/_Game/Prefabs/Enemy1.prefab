@@ -46,15 +46,57 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   isMoving: 1
-  leftLeg: {fileID: 4630230152098536972}
-  rightLeg: {fileID: 4062125296736251789}
+  activeBodyParts:
+  - name: 
+    type: 1
+    obj: {fileID: 4161077128683705046}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 5
+    obj: {fileID: 3843035479328550264}
+    invertPhase: 1
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 5
+    obj: {fileID: 5120674835471883250}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 7
+    obj: {fileID: 6438765231570248474}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 7
+    obj: {fileID: 6581838721048839337}
+    invertPhase: 1
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 3
+    obj: {fileID: 7615051853098276154}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  walkSpeed: 10
+  hipSwingAngle: 45
+  kneeBendAngle: 40
+  armSwingAngle: 45
+  elbowBendAngle: 30
+  moveForce: 100
+  mainBody: {fileID: 0}
   target: {fileID: 0}
   hip: {fileID: 3367067403228580040}
   hp: 100
-  speed: 4
-  stepRate: 0.3
   stopDistance: 0.5
   objectCamFolow: {fileID: 7176220690218853322}
+  breakForce: 300
+  breakRadius: 2
 --- !u!1 &3843035479328550264
 GameObject:
   m_ObjectHideFlags: 0
@@ -190,6 +232,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &7902357819090299160
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -457,6 +500,7 @@ MonoBehaviour:
   damage: 30
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &948999971365194288
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -721,6 +765,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &3334605000065334850
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1016,6 +1061,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &4630230152098536972
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1280,6 +1326,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &4062125296736251789
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1543,6 +1590,7 @@ MonoBehaviour:
   damage: 100
   isBroken: 0
   isHead: 1
+  isHip: 0
 --- !u!54 &7483792894926791982
 Rigidbody:
   m_ObjectHideFlags: 0

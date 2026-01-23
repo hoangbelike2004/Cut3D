@@ -27,6 +27,7 @@ public class GameController : Singleton<GameController>
         //destroy level cũ
         if (level != null)
         {
+            level.ResetLevel();
             Destroy(level.gameObject);
             level = null;
         }

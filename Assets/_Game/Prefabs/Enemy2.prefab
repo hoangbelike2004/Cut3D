@@ -138,6 +138,7 @@ MonoBehaviour:
   damage: 30
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &5256084207887076252
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -313,15 +314,81 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   isMoving: 1
-  leftLeg: {fileID: 7801338895905682666}
-  rightLeg: {fileID: 5210834949063005439}
+  activeBodyParts:
+  - name: 
+    type: 1
+    obj: {fileID: 1846452488578769751}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 4
+    obj: {fileID: 3343714476004673122}
+    invertPhase: 1
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 5
+    obj: {fileID: 4420733570294314464}
+    invertPhase: 1
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 4
+    obj: {fileID: 7894092090047415260}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 5
+    obj: {fileID: 4169905365161434726}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 6
+    obj: {fileID: 6171600132821791136}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 7
+    obj: {fileID: 8849658845669946792}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 6
+    obj: {fileID: 7083735849083934398}
+    invertPhase: 1
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 7
+    obj: {fileID: 3501910284121356435}
+    invertPhase: 1
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  - name: 
+    type: 3
+    obj: {fileID: 3839963156659412747}
+    invertPhase: 0
+    rb: {fileID: 0}
+    joint: {fileID: 0}
+  walkSpeed: 10
+  hipSwingAngle: 45
+  kneeBendAngle: 40
+  armSwingAngle: 45
+  elbowBendAngle: 30
+  moveForce: 100
+  mainBody: {fileID: 0}
   target: {fileID: 0}
   hip: {fileID: 5411906433622086428}
   hp: 100
-  speed: 2
-  stepRate: 0.3
   stopDistance: 1
   objectCamFolow: {fileID: 1292404129920533863}
+  breakForce: 300
+  breakRadius: 2
 --- !u!1 &3343714476004673122
 GameObject:
   m_ObjectHideFlags: 0
@@ -458,6 +525,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &7667819139448284823
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -722,6 +790,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &5210834949063005439
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -985,6 +1054,7 @@ MonoBehaviour:
   damage: 100
   isBroken: 0
   isHead: 1
+  isHip: 0
 --- !u!54 &5997709409554753362
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1249,6 +1319,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &4757384879139961593
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1513,6 +1584,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &8691687263374858307
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1778,6 +1850,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &1651362243057893009
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2043,6 +2116,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &8191881566902265913
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2308,6 +2382,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &2775385748247369867
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2603,6 +2678,7 @@ MonoBehaviour:
   damage: 0
   isBroken: 0
   isHead: 0
+  isHip: 0
 --- !u!54 &7801338895905682666
 Rigidbody:
   m_ObjectHideFlags: 0
