@@ -520,6 +520,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Enemy3
       objectReference: {fileID: 0}
+    - target: {fileID: 2256265100950392733, guid: 7801b45a1f152405097a5d4a87f605dc, type: 3}
+      propertyPath: moveForce
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2256265100950392733, guid: 7801b45a1f152405097a5d4a87f605dc, type: 3}
+      propertyPath: walkSpeed
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2256265100950392733, guid: 7801b45a1f152405097a5d4a87f605dc, type: 3}
+      propertyPath: elbowBendAngle
+      value: 30
+      objectReference: {fileID: 0}
     - target: {fileID: 5263543061594063431, guid: 7801b45a1f152405097a5d4a87f605dc, type: 3}
       propertyPath: currentHitCountMax
       value: 8

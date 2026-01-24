@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class Projectile : GameUnit
 {
     [Header("Physics Settings")]
-    public float impactForce = 10f; // Lực đẩy khi va chạm
+    public float impactForce = 10f;
     [Header("Movement Mode")]
     public bool flyStraight = false;
 
@@ -17,6 +17,9 @@ public class Projectile : GameUnit
     [Header("Bounce Settings")]
     public float bounceSpeedMultiplier = 1f;
     public LayerMask wallLayer;
+
+    [Header("Hit Adjustments")]
+    public Vector3 hitRotationOffset = new Vector3(0, 0, 0); // Chỉnh góc cắm nếu cần
 
     // --- TRẠNG THÁI ---
     public bool isStick = false;
@@ -32,23 +35,30 @@ public class Projectile : GameUnit
 
     private Vector3 currentFlightDirection;
     private Vector3 lastPosition;
-
     private float currentSpeed;
 
-    // List theo dõi Enemy đã chém (người)
     private List<Sliceable> sliceables = new List<Sliceable>();
-
-    // [MỚI] List theo dõi Object đã chém (vật)
     private List<ObjectSliceable> hitObjects = new List<ObjectSliceable>();
+
+    // --- CÁC BIẾN QUAN TRỌNG CHO LOGIC BÁM DÍNH (FIX MÉO HÌNH) ---
+    private Vector3 savedScale;         // Lưu kích thước chuẩn của Rìu
+    private Transform targetParent;     // Đối tượng đang bám vào
+    private Vector3 relativePosition;   // Vị trí tương đối
+    private Quaternion relativeRotation;// Góc xoay tương đối
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
+
+        // 1. Lưu lại Scale chuẩn ngay từ đầu (Ví dụ: 0.22, 2.55, 0.11)
+        // Để sau này dù có chuyện gì xảy ra cũng reset về được số này
+        savedScale = transform.localScale;
     }
 
     void Update()
     {
+        // Logic Bay (Chỉ chạy khi chưa dính)
         if (isMoving && !hasHit)
         {
             Vector3 displacement = transform.position - lastPosition;
@@ -60,46 +70,71 @@ public class Projectile : GameUnit
         }
     }
 
+    // [QUAN TRỌNG] Dùng LateUpdate để bám theo sau cùng (tránh rung lắc)
+    void LateUpdate()
+    {
+        if (isStick)
+        {
+            if (targetParent != null)
+            {
+                // THUẬT TOÁN: Tự tính toán vị trí bám theo thay vì SetParent
+
+                // 1. Dịch chuyển Rìu đến vị trí mới dựa trên vị trí tương đối đã lưu
+                transform.position = targetParent.TransformPoint(relativePosition);
+
+                // 2. Xoay Rìu theo góc xoay của Cha
+                transform.rotation = targetParent.rotation * relativeRotation;
+
+                // 3. Scale: Vì Rìu đứng độc lập (không con ai cả) nên Scale luôn chuẩn
+            }
+            else
+            {
+                // Nếu vật bị bám đã bị hủy (Enemy chết mất xác), thì Rìu tự hủy
+                DespawnSelf();
+            }
+        }
+    }
+
     public void InitializeArcThrow(Vector3 targetPosition, float speedMultiplier, float angleX)
     {
-        // 1. Reset List
         sliceables.Clear();
-        hitObjects.Clear(); // [MỚI] Reset list vật thể
+        hitObjects.Clear();
 
         isStick = false;
         hasHit = false;
         isMoving = true;
         lastPosition = transform.position;
+        targetParent = null; // Reset mục tiêu bám
 
         col.enabled = true;
         col.isTrigger = true;
 
-        // Reset Physics
-        rb.isKinematic = false; // Tắt kinematic để bật vật lý (Unity 6 cần bật cái này để set velocity nếu muốn)
-        // Nhưng ở đây ta dùng Tween nên ta set lại kinematic = true ngay sau đó hoặc giữ nguyên logic cũ của bạn
         rb.isKinematic = true;
         rb.useGravity = false;
-
-        // Unity 6 dùng linearVelocity, Unity cũ dùng velocity. 
-        // Vì đang dùng Tween nên set về 0 cho chắc.
-        // rb.linearVelocity = Vector3.zero; 
+        // rb.linearVelocity = Vector3.zero; // Unity 6
+        // rb.angularVelocity = Vector3.zero;
 
         transform.rotation = Quaternion.identity;
         transform.localRotation = Quaternion.Euler(rotation + Vector3.right * angleX);
+
+        // Đảm bảo Rìu nằm ngoài cùng (không con ai cả)
+        transform.SetParent(null);
+
+        // Trả lại Scale chuẩn ban đầu
+        transform.localScale = savedScale;
 
         Vector3 startPos = transform.position;
         currentSpeed = flySpeed * Mathf.Max(speedMultiplier, 0.5f);
 
         if (moveTween != null) moveTween.Kill();
 
-        // 2. DI CHUYỂN (Logic cũ giữ nguyên)
+        // Logic di chuyển (giữ nguyên code cũ của bạn)
         if (flyStraight)
         {
             Vector3 dir = (targetPosition - startPos).normalized;
             currentFlightDirection = dir;
             Vector3 overshootPoint = targetPosition + dir * 20f;
             float duration = Vector3.Distance(startPos, overshootPoint) / currentSpeed;
-
             moveTween = transform.DOMove(overshootPoint, duration).SetEase(Ease.Linear);
         }
         else
@@ -112,10 +147,7 @@ public class Projectile : GameUnit
             Vector3 overshootPoint = targetPosition + endDir * 20f;
 
             Vector3[] path = new Vector3[] { controlPoint, targetPosition, overshootPoint };
-            float pathLen = Vector3.Distance(startPos, controlPoint) +
-                            Vector3.Distance(controlPoint, targetPosition) +
-                            Vector3.Distance(targetPosition, overshootPoint);
-
+            float pathLen = Vector3.Distance(startPos, controlPoint) + Vector3.Distance(controlPoint, targetPosition) + Vector3.Distance(targetPosition, overshootPoint);
             moveTween = transform.DOPath(path, pathLen / currentSpeed, PathType.CatmullRom).SetEase(Ease.Linear);
         }
 
@@ -128,11 +160,9 @@ public class Projectile : GameUnit
     {
         if (hasHit) return;
 
-        // --- CASE 1: XỬ LÝ ENEMY (NGƯỜI) ---
         if (other.CompareTag("Enemy"))
         {
-            ApplyForceToTarget(other); // Đẩy lùi
-
+            ApplyForceToTarget(other);
             Sliceable sliceable = other.GetComponent<Sliceable>();
             if (sliceable != null && !sliceables.Contains(sliceable.GetParentOld))
             {
@@ -142,14 +172,10 @@ public class Projectile : GameUnit
             return;
         }
 
-        // --- CASE 2: [MỚI] XỬ LÝ OBJECT (VẬT) ---
-        // Bạn nhớ gán Tag "Object" hoặc "Prop" cho các đồ vật nhé
         if (other.CompareTag("Object"))
         {
-            ApplyForceToTarget(other); // Đẩy lùi đồ vật
-
+            ApplyForceToTarget(other);
             ObjectSliceable objSlice = other.GetComponent<ObjectSliceable>();
-            // Kiểm tra xem đã chém vào vật gốc này chưa (để tránh chém nhiều lần vào các mảnh vỡ của cùng 1 vật trong 1 frame)
             if (objSlice != null && !hitObjects.Contains(objSlice.GetOriginOld))
             {
                 hitObjects.Add(objSlice.GetOriginOld);
@@ -158,34 +184,27 @@ public class Projectile : GameUnit
             return;
         }
 
-        // --- CASE 3: XỬ LÝ TƯỜNG (PHẢN XẠ) ---
         if (other.CompareTag("Wall"))
         {
             HandleWallBounce();
         }
     }
 
-    // --- Tách hàm Physics cho gọn ---
     void ApplyForceToTarget(Collider targetCol)
     {
         Rigidbody targetRb = targetCol.GetComponent<Rigidbody>();
         if (targetRb == null) targetRb = targetCol.GetComponentInParent<Rigidbody>();
-
         if (targetRb != null)
         {
-            // Đẩy theo hướng đạn bay
             targetRb.AddForce(currentFlightDirection.normalized * impactForce, ForceMode.Impulse);
         }
     }
 
-    // --- Tách hàm Nảy tường cho gọn ---
     void HandleWallBounce()
     {
         if (moveTween != null) moveTween.Kill();
-
         Vector3 reflectDir = Vector3.up;
         RaycastHit hit;
-
         if (Physics.Raycast(transform.position - currentFlightDirection * 1f, currentFlightDirection, out hit, 2f, wallLayer))
         {
             reflectDir = Vector3.Reflect(currentFlightDirection, hit.normal);
@@ -194,23 +213,65 @@ public class Projectile : GameUnit
         {
             reflectDir = Vector3.Reflect(currentFlightDirection, Vector3.up);
         }
-
         currentFlightDirection = reflectDir.normalized;
         currentSpeed *= bounceSpeedMultiplier;
-
         float farDistance = 50f;
         Vector3 infiniteTarget = transform.position + currentFlightDirection * farDistance;
         float duration = farDistance / currentSpeed;
-
         moveTween = transform.DOMove(infiniteTarget, duration).SetEase(Ease.Linear);
+    }
+
+    // --- HÀM NÀY ĐÃ SỬA TRIỆT ĐỂ VẤN ĐỀ MÉO VÀ XOAY ---
+    public void StickProjectile(Transform parent)
+    {
+        hasHit = true;
+        isMoving = false;
+
+        CancelInvoke(nameof(DespawnSelf));
+        if (moveTween != null) moveTween.Kill();
+        StopSpinning(); // Dừng xoay ngay lập tức -> Giữ nguyên góc hiện tại
+
+        // --- [SỬA TẠI ĐÂY] ---
+        // Tôi đã Comment đoạn này lại. 
+        // Bây giờ Rìu sẽ giữ nguyên góc xoay lúc nó chạm vào kẻ địch, không bị tự đổi hướng nữa.
+
+        /* if (currentFlightDirection != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(currentFlightDirection) * Quaternion.Euler(hitRotationOffset);
+        }
+        */
+
+        rb.isKinematic = true;
+        col.isTrigger = true;
+        isStick = true;
+
+        // Thiết lập mục tiêu để LateUpdate chạy theo (Math Follow)
+        targetParent = parent;
+
+        // Tính toán vị trí/góc tương đối
+        relativePosition = targetParent.InverseTransformPoint(transform.position);
+
+        // Tính góc lệch giữa Rìu và Cha tại thời điểm va chạm
+        relativeRotation = Quaternion.Inverse(targetParent.rotation) * transform.rotation;
+
+        // Tách ra ngoài để giữ Scale chuẩn (Fix lỗi méo hình)
+        transform.SetParent(null);
+        transform.localScale = savedScale;
     }
 
     void DespawnSelf()
     {
         isMoving = false;
+        isStick = false;
+        targetParent = null;
+
         CancelInvoke(nameof(DespawnSelf));
         if (moveTween != null) moveTween.Kill();
         StopSpinning();
+
+        transform.SetParent(null);
+        transform.localScale = savedScale;
+
         SimplePool.Despawn(this);
     }
 
@@ -233,23 +294,10 @@ public class Projectile : GameUnit
         }
     }
 
-    public void StickProjectile(Transform parent)
-    {
-        hasHit = true;
-        isMoving = false;
-        CancelInvoke(nameof(DespawnSelf));
-        if (moveTween != null) moveTween.Kill();
-        StopSpinning();
-
-        rb.isKinematic = true;
-        col.isTrigger = true;
-        isStick = true;
-        transform.SetParent(parent, true);
-    }
-
     void OnDisable()
     {
         isMoving = false;
+        isStick = false;
         CancelInvoke(nameof(DespawnSelf));
         if (moveTween != null) moveTween.Kill();
         StopSpinning();
