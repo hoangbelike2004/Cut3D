@@ -116,7 +116,6 @@ public class Projectile : GameUnit
 
         transform.rotation = Quaternion.identity;
         transform.localRotation = Quaternion.Euler(rotation + Vector3.right * angleX);
-
         // Đảm bảo Rìu nằm ngoài cùng (không con ai cả)
         transform.SetParent(null);
 

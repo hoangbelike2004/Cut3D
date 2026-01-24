@@ -4,7 +4,13 @@ using System.Linq;
 
 public class Enemy : MonoBehaviour
 {
-    // --- 1. ĐỊNH NGHĨA CHI TIẾT ---
+    // --- 1. ĐỊNH NGHĨA LOẠI ENEMY ---
+    public enum EnemyType
+    {
+        Melee,  // Bình thường (Lao vào húc)
+        Ranged  // Tầm xa (Đứng lại bắn)
+    }
+
     public enum BodyPartType
     {
         None, Pelvis, Spine, Head, UpperArm, LowerArm, UpperLeg, LowerLeg, Foot
@@ -21,6 +27,17 @@ public class Enemy : MonoBehaviour
         [HideInInspector] public Rigidbody rb;
         [HideInInspector] public ConfigurableJoint joint;
     }
+
+    [Header("LOẠI KẺ ĐỊCH")]
+    public EnemyType enemyType = EnemyType.Melee;
+
+    [Header("Cài Đặt Tấn Công Tầm Xa (Ranged Only)")]
+    public GameObject projectilePrefab; // Kéo Prefab viên đạn vào đây
+    // [ĐÃ SỬA] Bỏ biến firePoint, dùng luôn objectCamFolow
+    public float attackRange = 10f;
+    public float fireRate = 2f;
+    public float bulletSpeed = 20f;
+    private float nextFireTime;
 
     [Header("Trạng thái")]
     public bool isMoving = true;
@@ -44,6 +61,8 @@ public class Enemy : MonoBehaviour
     public Transform hip;
     public int hp;
     public float stopDistance = 1.0f;
+
+    // [QUAN TRỌNG] Dùng cái này làm điểm bắn luôn
     public Transform objectCamFolow;
 
     [Header("Hiệu ứng chết")]
@@ -83,19 +102,42 @@ public class Enemy : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!isMoving || target == null || hip == null || isDie) return;
+        if (target == null || hip == null || isDie) return;
 
+        // 1. TÍNH KHOẢNG CÁCH
         float distance = Vector3.Distance(new Vector3(hip.position.x, 0, hip.position.z),
                                           new Vector3(target.position.x, 0, target.position.z));
 
-        if (distance < stopDistance)
+        // 2. XỬ LÝ THEO LOẠI ENEMY
+        if (enemyType == EnemyType.Melee)
         {
-            isMoving = false;
-            ResetPose();
-            if (GameController.Instance != null) GameController.Instance.ReplayGame();
-            return;
+            if (distance < stopDistance)
+            {
+                isMoving = false;
+                ResetPose();
+                if (GameController.Instance != null) GameController.Instance.ReplayGame();
+                return;
+            }
+            else
+            {
+                isMoving = true;
+            }
+        }
+        else // EnemyType.Ranged
+        {
+            if (distance < attackRange)
+            {
+                isMoving = false;
+                ResetPose();
+                ShootBehavior();
+            }
+            else
+            {
+                isMoving = true;
+            }
         }
 
+        // 3. XOAY NGƯỜI
         Vector3 dir = (target.position - hip.position).normalized;
         dir.y = 0;
 
@@ -106,15 +148,12 @@ public class Enemy : MonoBehaviour
             mainBody.MoveRotation(Quaternion.Slerp(mainBody.rotation, lookRot, 5f * Time.fixedDeltaTime));
         }
 
+        if (!isMoving) return;
+
+        // 4. ANIMATION DI CHUYỂN
         float cycle = Mathf.Sin(Time.time * walkSpeed);
         bool hasUpperLeg = activeBodyParts.Any(p => p.type == BodyPartType.UpperLeg);
-
-        // Logic Max Speed
-        bool currentSpeedIsHigh = false;
-        if (mainBody != null && mainBody.linearVelocity.magnitude > maxSpeed)
-        {
-            currentSpeedIsHigh = true;
-        }
+        bool currentSpeedIsHigh = mainBody != null && mainBody.linearVelocity.magnitude > maxSpeed;
 
         foreach (var part in activeBodyParts)
         {
@@ -163,12 +202,34 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    // --- [ĐÃ SỬA] HÀM REMOVE PART CÓ CHỈNH LỰC SPRING ---
+    // --- [ĐÃ SỬA] DÙNG POOL VÀ OBJECTCAMFOLOW ---
+    void ShootBehavior()
+    {
+        if (Time.time >= nextFireTime)
+        {
+            nextFireTime = Time.time + fireRate;
+
+            // Dùng objectCamFolow làm vị trí bắn
+            if (projectilePrefab != null && objectCamFolow != null)
+            {
+                // 1. Dùng SimplePool để sinh đạn
+                // GameObject bullet = SimplePool.Spawn(projectilePrefab, objectCamFolow.position, objectCamFolow.rotation);
+
+                // // 2. Bắn đạn đi
+                // Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
+                // if (bulletRb != null)
+                // {
+                //     Vector3 shootDir = (target.position - objectCamFolow.position).normalized;
+                //     bulletRb.linearVelocity = shootDir * bulletSpeed;
+                //     // Nếu dùng Unity cũ thì đổi dòng trên thành: bulletRb.velocity = shootDir * bulletSpeed;
+                // }
+            }
+        }
+    }
+
     public void RemovePart(GameObject lostObject)
     {
         List<BodyPart> partsToRemove = new List<BodyPart>();
-
-        // 1. Tìm bộ phận bị cắt và các con cháu của nó
         foreach (var part in activeBodyParts)
         {
             if (part.obj != null)
@@ -180,30 +241,23 @@ public class Enemy : MonoBehaviour
             }
         }
 
-        // 2. Xử lý xóa và chỉnh lực
         foreach (var part in partsToRemove)
         {
-            // [LOGIC MỚI] Nếu là Thân (Spine) hoặc Hông (Pelvis)
+            // Logic ngã 180 (hoặc 0 tùy ý bạn) khi mất thân
             if (part.type == BodyPartType.Spine || part.type == BodyPartType.Pelvis)
             {
                 if (part.joint != null)
                 {
-                    // Chỉnh lực Angular X Spring về 180
                     var driveX = part.joint.angularXDrive;
                     driveX.positionSpring = 0f;
                     part.joint.angularXDrive = driveX;
 
-                    // Chỉnh lực Angular YZ Spring về 180
                     var driveYZ = part.joint.angularYZDrive;
                     driveYZ.positionSpring = 0f;
                     part.joint.angularYZDrive = driveYZ;
                 }
-
-                // [Tùy chọn] Nếu mất thân thì có thể cho ngừng di chuyển luôn
                 isMoving = false;
             }
-
-            // Xóa khỏi danh sách điều khiển Animation
             activeBodyParts.Remove(part);
         }
     }
@@ -223,7 +277,29 @@ public class Enemy : MonoBehaviour
 
         if (level != null) level.RemoveEnemy(this);
 
+        MakeBodyLimp();
         BreakAllJoints();
+    }
+
+    private void MakeBodyLimp()
+    {
+        ConfigurableJoint[] joints = GetComponentsInChildren<ConfigurableJoint>();
+        foreach (var j in joints)
+        {
+            if (j == null) continue;
+
+            JointDrive drive = j.angularXDrive;
+            drive.positionSpring = 0;
+            drive.positionDamper = 0;
+            j.angularXDrive = drive;
+
+            drive = j.angularYZDrive;
+            drive.positionSpring = 0;
+            drive.positionDamper = 0;
+            j.angularYZDrive = drive;
+
+            if (j.GetComponent<Rigidbody>()) j.GetComponent<Rigidbody>().WakeUp();
+        }
     }
 
     private void BreakAllJoints()
