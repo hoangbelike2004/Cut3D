@@ -11,8 +11,8 @@ public class PlayerController : MonoBehaviour
     public float minDragDistance = 10f; // <--- MỚI: Ngưỡng kiểm tra
 
     [Header("Cài đặt Vũ Khí")]
-    public float minScale = 0.25f;
-    public float maxScale = 1.5f;
+    private float minScale = 0.1f;
+    private float maxScale = 1.25f;
 
     [Header("Cài đặt Hiển thị (Line)")]
     public float distanceFromCamera = 5f; // Khoảng cách vẽ Line trước Camera
@@ -112,7 +112,6 @@ public class PlayerController : MonoBehaviour
 
         // Tính Scale thực tế dựa trên tỉ lệ này
         float finalScale = Mathf.Lerp(minScale, maxScale, powerRatio);
-
         // --- BƯỚC 2: TÌM MỤC TIÊU (RAYCAST TỪ ĐIỂM GIỮA) ---
         Vector2 screenMidPoint = (startMousePos + endMousePos) / 2;
         Ray ray = mainCamera.ScreenPointToRay(screenMidPoint);
@@ -138,7 +137,6 @@ public class PlayerController : MonoBehaviour
         if (axe != null)
         {
             axe.transform.localScale = Vector3.one * scale;
-
             // 1. Tính Vector hướng
             Vector2 direction = startMousePos - endMousePos;
 

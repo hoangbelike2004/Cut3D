@@ -32,8 +32,9 @@ public class Enemy : MonoBehaviour
     public EnemyType enemyType = EnemyType.Melee;
 
     [Header("Cài Đặt Tấn Công Tầm Xa (Ranged Only)")]
-    public GameObject projectilePrefab; // Kéo Prefab viên đạn vào đây
-    // [ĐÃ SỬA] Bỏ biến firePoint, dùng luôn objectCamFolow
+    // [ĐÃ XÓA] Biến projectilePrefab theo yêu cầu của bạn
+
+    // Dùng objectCamFolow làm điểm bắn
     public float attackRange = 10f;
     public float fireRate = 2f;
     public float bulletSpeed = 20f;
@@ -56,10 +57,10 @@ public class Enemy : MonoBehaviour
     public float elbowBendAngle = 30f;
 
     [Header("Cài đặt chung")]
-    public Rigidbody mainBody;
-    public Transform target;
-    public Transform hip;
-    public int hp;
+    private Rigidbody mainBody;
+    private Transform target;
+    private Transform hip;
+    private int hp = 100;
     public float stopDistance = 1.0f;
 
     // [QUAN TRỌNG] Dùng cái này làm điểm bắn luôn
@@ -88,6 +89,11 @@ public class Enemy : MonoBehaviour
         {
             if (part.obj != null)
             {
+                if (part.type == BodyPartType.Pelvis)
+                {
+                    hip = part.obj.transform;
+                    mainBody = part.obj.GetComponent<Rigidbody>();
+                }
                 part.rb = part.obj.GetComponent<Rigidbody>();
                 part.joint = part.obj.GetComponent<ConfigurableJoint>();
             }
@@ -202,27 +208,17 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    // --- [ĐÃ SỬA] DÙNG POOL VÀ OBJECTCAMFOLOW ---
+    // --- [ĐÃ SỬA] XÓA BIẾN PROJECTILEPREFAB ---
     void ShootBehavior()
     {
         if (Time.time >= nextFireTime)
         {
             nextFireTime = Time.time + fireRate;
 
-            // Dùng objectCamFolow làm vị trí bắn
-            if (projectilePrefab != null && objectCamFolow != null)
+            if (objectCamFolow != null)
             {
-                // 1. Dùng SimplePool để sinh đạn
-                // GameObject bullet = SimplePool.Spawn(projectilePrefab, objectCamFolow.position, objectCamFolow.rotation);
-
-                // // 2. Bắn đạn đi
-                // Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
-                // if (bulletRb != null)
-                // {
-                //     Vector3 shootDir = (target.position - objectCamFolow.position).normalized;
-                //     bulletRb.linearVelocity = shootDir * bulletSpeed;
-                //     // Nếu dùng Unity cũ thì đổi dòng trên thành: bulletRb.velocity = shootDir * bulletSpeed;
-                // }
+                Bullet bullet = SimplePool.Spawn<Bullet>(PoolType.Bullet, objectCamFolow.position, objectCamFolow.rotation);
+                bullet.Initialize(-objectCamFolow.forward);
             }
         }
     }
@@ -243,7 +239,6 @@ public class Enemy : MonoBehaviour
 
         foreach (var part in partsToRemove)
         {
-            // Logic ngã 180 (hoặc 0 tùy ý bạn) khi mất thân
             if (part.type == BodyPartType.Spine || part.type == BodyPartType.Pelvis)
             {
                 if (part.joint != null)

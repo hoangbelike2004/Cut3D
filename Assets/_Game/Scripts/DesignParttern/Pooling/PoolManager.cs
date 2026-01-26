@@ -59,4 +59,5 @@ public enum PoolType
     None,
     Audio_Sources,
     Weapon_Axe,
+    Bullet,
 }

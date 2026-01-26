@@ -1,6 +1,7 @@
 using UnityEngine;
 using DG.Tweening;
 using System.Collections.Generic;
+using System.Collections; // Cần thêm cái này để dùng Coroutine
 
 public class Projectile : GameUnit
 {
@@ -18,9 +19,6 @@ public class Projectile : GameUnit
     public float bounceSpeedMultiplier = 1f;
     public LayerMask wallLayer;
 
-    [Header("Hit Adjustments")]
-    public Vector3 hitRotationOffset = new Vector3(0, 0, 0); // Chỉnh góc cắm nếu cần
-
     // --- TRẠNG THÁI ---
     public bool isStick = false;
     public Vector3 rotation;
@@ -30,108 +28,109 @@ public class Projectile : GameUnit
 
     private Rigidbody rb;
     private Collider col;
-    private Tween spinTween;
     private Tween moveTween;
 
     private Vector3 currentFlightDirection;
     private Vector3 lastPosition;
     private float currentSpeed;
+    private float currentSpinAngleZ = 0f;
+    private float initialAngleX;
 
     private List<Sliceable> sliceables = new List<Sliceable>();
     private List<ObjectSliceable> hitObjects = new List<ObjectSliceable>();
 
-    // --- CÁC BIẾN QUAN TRỌNG CHO LOGIC BÁM DÍNH (FIX MÉO HÌNH) ---
-    private Vector3 savedScale;         // Lưu kích thước chuẩn của Rìu
-    private Transform targetParent;     // Đối tượng đang bám vào
-    private Vector3 relativePosition;   // Vị trí tương đối
-    private Quaternion relativeRotation;// Góc xoay tương đối
+    private Vector3 savedScale;
+    private Transform targetParent;
+
+    // Biến lưu tham chiếu Coroutine để dừng khi cần
+    private Coroutine flightCoroutine;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
-
-        // 1. Lưu lại Scale chuẩn ngay từ đầu (Ví dụ: 0.22, 2.55, 0.11)
-        // Để sau này dù có chuyện gì xảy ra cũng reset về được số này
         savedScale = transform.localScale;
     }
 
+    // [ĐÃ SỬA] Xóa Update đi, chỉ để lại check cha chết (nếu cần)
+    // Hoặc nếu muốn tối ưu hơn, chuyển check cha chết vào Coroutine riêng
     void Update()
     {
-        // Logic Bay (Chỉ chạy khi chưa dính)
-        if (isMoving && !hasHit)
+        // Chỉ kiểm tra khi đang stick
+        if (isStick && targetParent == null)
         {
+            DespawnSelf();
+        }
+    }
+
+    // [MỚI] Coroutine thay thế cho Update
+    IEnumerator FlyRoutine()
+    {
+        while (isMoving && !hasHit)
+        {
+            // A. Tính toán hướng bay
             Vector3 displacement = transform.position - lastPosition;
             if (displacement.sqrMagnitude > 0.0001f)
             {
                 currentFlightDirection = displacement.normalized;
             }
+
+            // B. Tính góc xoay
+            float spinSpeed = 360f / rotateDuration;
+            currentSpinAngleZ -= spinSpeed * Time.deltaTime;
+
+            // C. Áp dụng xoay
+            if (currentFlightDirection != Vector3.zero)
+            {
+                Quaternion lookRot = Quaternion.LookRotation(currentFlightDirection);
+                Quaternion modelCorrection = Quaternion.Euler(rotation + Vector3.right * initialAngleX);
+                Quaternion spinRot = Quaternion.Euler(0, 0, currentSpinAngleZ);
+
+                transform.rotation = lookRot * modelCorrection * spinRot;
+            }
+
             lastPosition = transform.position;
-        }
-    }
 
-    // [QUAN TRỌNG] Dùng LateUpdate để bám theo sau cùng (tránh rung lắc)
-    void LateUpdate()
-    {
-        if (isStick)
-        {
-            if (targetParent != null)
-            {
-                // THUẬT TOÁN: Tự tính toán vị trí bám theo thay vì SetParent
-
-                // 1. Dịch chuyển Rìu đến vị trí mới dựa trên vị trí tương đối đã lưu
-                transform.position = targetParent.TransformPoint(relativePosition);
-
-                // 2. Xoay Rìu theo góc xoay của Cha
-                transform.rotation = targetParent.rotation * relativeRotation;
-
-                // 3. Scale: Vì Rìu đứng độc lập (không con ai cả) nên Scale luôn chuẩn
-            }
-            else
-            {
-                // Nếu vật bị bám đã bị hủy (Enemy chết mất xác), thì Rìu tự hủy
-                DespawnSelf();
-            }
+            // Đợi đến frame tiếp theo
+            yield return null;
         }
     }
 
     public void InitializeArcThrow(Vector3 targetPosition, float speedMultiplier, float angleX)
     {
+        if (moveTween != null) moveTween.Kill();
+        CancelInvoke(nameof(DespawnSelf));
+
+        // Dừng coroutine cũ nếu có
+        if (flightCoroutine != null) StopCoroutine(flightCoroutine);
+
         sliceables.Clear();
         hitObjects.Clear();
 
         isStick = false;
         hasHit = false;
-        isMoving = true;
+        isMoving = true; // Bật cờ chạy
         lastPosition = transform.position;
-        targetParent = null; // Reset mục tiêu bám
+        targetParent = null;
+
+        currentSpinAngleZ = 0f;
+        initialAngleX = angleX;
 
         col.enabled = true;
         col.isTrigger = true;
-
         rb.isKinematic = true;
         rb.useGravity = false;
-        // rb.linearVelocity = Vector3.zero; // Unity 6
-        // rb.angularVelocity = Vector3.zero;
 
-        transform.rotation = Quaternion.identity;
-        transform.localRotation = Quaternion.Euler(rotation + Vector3.right * angleX);
-        // Đảm bảo Rìu nằm ngoài cùng (không con ai cả)
         transform.SetParent(null);
-
-        // Trả lại Scale chuẩn ban đầu
-        transform.localScale = savedScale;
 
         Vector3 startPos = transform.position;
         currentSpeed = flySpeed * Mathf.Max(speedMultiplier, 0.5f);
+        Vector3 dir = (targetPosition - startPos).normalized;
+        currentFlightDirection = dir;
 
-        if (moveTween != null) moveTween.Kill();
-
-        // Logic di chuyển (giữ nguyên code cũ của bạn)
+        // DI CHUYỂN (DOTween vẫn lo việc thay đổi position)
         if (flyStraight)
         {
-            Vector3 dir = (targetPosition - startPos).normalized;
-            currentFlightDirection = dir;
             Vector3 overshootPoint = targetPosition + dir * 20f;
             float duration = Vector3.Distance(startPos, overshootPoint) / currentSpeed;
             moveTween = transform.DOMove(overshootPoint, duration).SetEase(Ease.Linear);
@@ -139,8 +138,7 @@ public class Projectile : GameUnit
         else
         {
             Vector3 midPoint = (startPos + targetPosition) / 2;
-            float distance = Vector3.Distance(startPos, targetPosition);
-            Vector3 curveOffset = new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f), 0).normalized * (distance * 0.3f);
+            Vector3 curveOffset = new Vector3(Random.Range(-1f, 1f), Random.Range(0.2f, 1f), 0).normalized * (Vector3.Distance(startPos, targetPosition) * 0.3f);
             Vector3 controlPoint = midPoint + curveOffset;
             Vector3 endDir = (targetPosition - controlPoint).normalized;
             Vector3 overshootPoint = targetPosition + endDir * 20f;
@@ -150,8 +148,9 @@ public class Projectile : GameUnit
             moveTween = transform.DOPath(path, pathLen / currentSpeed, PathType.CatmullRom).SetEase(Ease.Linear);
         }
 
-        StartSpinning();
-        CancelInvoke(nameof(DespawnSelf));
+        // [MỚI] Bắt đầu Coroutine xoay và tính hướng
+        flightCoroutine = StartCoroutine(FlyRoutine());
+
         Invoke(nameof(DespawnSelf), lifeTime);
     }
 
@@ -202,103 +201,73 @@ public class Projectile : GameUnit
     void HandleWallBounce()
     {
         if (moveTween != null) moveTween.Kill();
-        Vector3 reflectDir = Vector3.up;
+
+        float maxScale = Mathf.Max(transform.localScale.x, transform.localScale.y, transform.localScale.z);
+        float backTrackDistance = maxScale * 2f + 2f;
         RaycastHit hit;
-        if (Physics.Raycast(transform.position - currentFlightDirection * 1f, currentFlightDirection, out hit, 2f, wallLayer))
+        Vector3 reflectDir;
+
+        if (Physics.Raycast(transform.position - currentFlightDirection * backTrackDistance, currentFlightDirection, out hit, backTrackDistance + 5f, wallLayer))
         {
             reflectDir = Vector3.Reflect(currentFlightDirection, hit.normal);
+            transform.position = hit.point + hit.normal * (maxScale * 0.5f);
         }
         else
         {
-            reflectDir = Vector3.Reflect(currentFlightDirection, Vector3.up);
+            reflectDir = -currentFlightDirection;
         }
+
         currentFlightDirection = reflectDir.normalized;
         currentSpeed *= bounceSpeedMultiplier;
+
         float farDistance = 50f;
         Vector3 infiniteTarget = transform.position + currentFlightDirection * farDistance;
         float duration = farDistance / currentSpeed;
+
         moveTween = transform.DOMove(infiniteTarget, duration).SetEase(Ease.Linear);
     }
 
-    // --- HÀM NÀY ĐÃ SỬA TRIỆT ĐỂ VẤN ĐỀ MÉO VÀ XOAY ---
     public void StickProjectile(Transform parent)
     {
         hasHit = true;
-        isMoving = false;
+        isMoving = false; // [QUAN TRỌNG] Đặt false để vòng lặp while trong Coroutine tự thoát
 
         CancelInvoke(nameof(DespawnSelf));
         if (moveTween != null) moveTween.Kill();
-        StopSpinning(); // Dừng xoay ngay lập tức -> Giữ nguyên góc hiện tại
 
-        // --- [SỬA TẠI ĐÂY] ---
-        // Tôi đã Comment đoạn này lại. 
-        // Bây giờ Rìu sẽ giữ nguyên góc xoay lúc nó chạm vào kẻ địch, không bị tự đổi hướng nữa.
-
-        /* if (currentFlightDirection != Vector3.zero)
-        {
-            transform.rotation = Quaternion.LookRotation(currentFlightDirection) * Quaternion.Euler(hitRotationOffset);
-        }
-        */
+        // Dừng thủ công cho chắc chắn (dù vòng lặp while cũng sẽ tự dừng)
+        if (flightCoroutine != null) StopCoroutine(flightCoroutine);
 
         rb.isKinematic = true;
         col.isTrigger = true;
         isStick = true;
 
-        // Thiết lập mục tiêu để LateUpdate chạy theo (Math Follow)
         targetParent = parent;
-
-        // Tính toán vị trí/góc tương đối
-        relativePosition = targetParent.InverseTransformPoint(transform.position);
-
-        // Tính góc lệch giữa Rìu và Cha tại thời điểm va chạm
-        relativeRotation = Quaternion.Inverse(targetParent.rotation) * transform.rotation;
-
-        // Tách ra ngoài để giữ Scale chuẩn (Fix lỗi méo hình)
-        transform.SetParent(null);
-        transform.localScale = savedScale;
+        transform.SetParent(targetParent);
     }
 
-    void DespawnSelf()
+    public void DespawnSelf()
     {
         isMoving = false;
         isStick = false;
+        hasHit = false;
         targetParent = null;
 
         CancelInvoke(nameof(DespawnSelf));
         if (moveTween != null) moveTween.Kill();
-        StopSpinning();
+        if (flightCoroutine != null) StopCoroutine(flightCoroutine);
 
         transform.SetParent(null);
-        transform.localScale = savedScale;
-
         SimplePool.Despawn(this);
     }
 
-    void StartSpinning()
+    void OnEnable()
     {
-        StopSpinning();
-        spinTween = transform
-            .DOLocalRotate(new Vector3(0, 0, -360), rotateDuration, RotateMode.FastBeyond360)
-            .SetRelative(true)
-            .SetEase(Ease.Linear)
-            .SetLoops(-1, LoopType.Incremental);
-    }
-
-    void StopSpinning()
-    {
-        if (spinTween != null)
-        {
-            spinTween.Kill();
-            spinTween = null;
-        }
+        Observer.OnDespawnObject += DespawnSelf;
     }
 
     void OnDisable()
     {
-        isMoving = false;
-        isStick = false;
-        CancelInvoke(nameof(DespawnSelf));
-        if (moveTween != null) moveTween.Kill();
-        StopSpinning();
+        Observer.OnDespawnObject -= DespawnSelf;
     }
 }

@@ -45,6 +45,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77a0427c46c5f497ba2deea48f8dc7f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  enemyType: 0
+  attackRange: 10
+  fireRate: 2
+  bulletSpeed: 20
   isMoving: 1
   activeBodyParts:
   - name: 
@@ -84,15 +88,12 @@ MonoBehaviour:
     rb: {fileID: 0}
     joint: {fileID: 0}
   walkSpeed: 10
+  maxSpeed: 5
+  moveForce: 100
   hipSwingAngle: 45
   kneeBendAngle: 40
   armSwingAngle: 45
   elbowBendAngle: 30
-  moveForce: 100
-  mainBody: {fileID: 0}
-  target: {fileID: 0}
-  hip: {fileID: 3367067403228580040}
-  hp: 100
   stopDistance: 0.5
   objectCamFolow: {fileID: 7176220690218853322}
   breakForce: 300
@@ -920,7 +921,7 @@ Transform:
   m_GameObject: {fileID: 5216403573474329185}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -0.78}
   m_LocalScale: {x: 3, y: 3, z: 3.7499995}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -51,10 +51,11 @@ public class Sliceable : MonoBehaviour
                 {
                     if (projectiles[i].isStick)
                     {
-                        projectiles[i].gameObject.SetActive(false);
+                        projectiles[i].DespawnSelf();
                     }
                 }
                 parent.Hit(projectiles.Count * damage);
+                GameController.Instance.DelayGame();
                 Observer.OnCuttingMultipObject?.Invoke(tfs, transform);
                 projectiles.Clear();
             }
