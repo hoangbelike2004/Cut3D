@@ -18,7 +18,7 @@ public class ObjectSliceable : MonoBehaviour
 
     // List các projectile đã găm vào vật thể này
     List<Projectile> projectiles = new List<Projectile>();
-
+    private Transform stuckProjectilesContainer;
     void Start()
     {
         OnInit();
@@ -64,8 +64,25 @@ public class ObjectSliceable : MonoBehaviour
             }
             else
             {
-                // Nếu chưa đủ số lần chém (ví dụ chém đá), vũ khí sẽ găm vào
-                projectile.StickProjectile(transform);
+                if (stuckProjectilesContainer == null)
+                {
+                    // 1. Tạo GameObject rỗng
+                    GameObject container = new GameObject("Stuck_Container");
+
+                    // 2. Set nó làm con của Sliceable này
+                    container.transform.SetParent(transform);
+
+                    // 3. Reset toạ độ về 0 so với cha
+                    container.transform.localPosition = Vector3.zero;
+                    container.transform.localRotation = Quaternion.identity;
+                    container.transform.localScale = Vector3.one;
+
+                    stuckProjectilesContainer = container.transform;
+                }
+
+                // [QUAN TRỌNG] Truyền cái Container vào cho Projectile dính vào
+                // Thay vì truyền 'transform' (chính mình), ta truyền 'stuckProjectilesContainer'
+                projectile.StickProjectile(stuckProjectilesContainer);
             }
         }
     }

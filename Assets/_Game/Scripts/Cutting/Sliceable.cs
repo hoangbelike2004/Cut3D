@@ -83,7 +83,8 @@ public class Sliceable : MonoBehaviour
                     GameObject container = new GameObject("Stuck_Container");
 
                     // 2. Set nó làm con của Sliceable này
-                    container.transform.SetParent(this.transform.parent);
+                    if (isHip) container.transform.SetParent(this.transform);
+                    else container.transform.SetParent(this.transform.parent);
 
                     // 3. Reset toạ độ về 0 so với cha
                     container.transform.localPosition = Vector3.zero;

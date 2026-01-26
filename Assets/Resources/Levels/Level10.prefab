@@ -709,8 +709,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   maxDragDistance: 400
   minDragDistance: 10
-  minScale: 0.25
-  maxScale: 1.5
   distanceFromCamera: 5
   lineWidth: 0.05
 --- !u!120 &7008554565879301759
@@ -1307,6 +1305,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8805259064158168183}
     m_Modifications:
+    - target: {fileID: 688919951356090574, guid: 66266d454caa8486aabbeb9e99d4f67b, type: 3}
+      propertyPath: isHip
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 688919951356090574, guid: 66266d454caa8486aabbeb9e99d4f67b, type: 3}
       propertyPath: currentHitCountMax
       value: 3

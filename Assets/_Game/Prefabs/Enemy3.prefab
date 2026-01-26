@@ -138,7 +138,7 @@ MonoBehaviour:
   damage: 30
   isBroken: 0
   isHead: 0
-  isHip: 0
+  isHip: 1
 --- !u!54 &2572043805986236993
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -313,6 +313,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77a0427c46c5f497ba2deea48f8dc7f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  enemyType: 0
+  attackRange: 10
+  fireRate: 2
+  bulletSpeed: 20
   isMoving: 1
   activeBodyParts:
   - name: 
@@ -352,15 +356,12 @@ MonoBehaviour:
     rb: {fileID: 0}
     joint: {fileID: 0}
   walkSpeed: 10
+  maxSpeed: 5
+  moveForce: 100
   hipSwingAngle: 45
   kneeBendAngle: 40
   armSwingAngle: 45
   elbowBendAngle: 30
-  moveForce: 100
-  mainBody: {fileID: 0}
-  target: {fileID: 0}
-  hip: {fileID: 9104678564141454875}
-  hp: 100
   stopDistance: 0.5
   objectCamFolow: {fileID: 2214644069763673785}
   breakForce: 300
@@ -1791,7 +1792,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1953706618697791136, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_TagString
-      value: Enemy
+      value: Object
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1808,7 +1809,7 @@ PrefabInstance:
       addedObject: {fileID: 5560961801673901498}
     - targetCorrespondingSourceObject: {fileID: 1953706618697791136, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 5263543061594063431}
+      addedObject: {fileID: 8915324035884525881}
   m_SourcePrefab: {fileID: 100100000, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
 --- !u!4 &1687409614645976033 stripped
 Transform:
@@ -1970,7 +1971,7 @@ ConfigurableJoint:
   m_EnablePreprocessing: 1
   m_MassScale: 1
   m_ConnectedMassScale: 1
---- !u!114 &5263543061594063431
+--- !u!114 &8915324035884525881
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1979,13 +1980,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 2026957065452061019}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4ac06dcc990154c4bb2b37f335225547, type: 3}
+  m_Script: {fileID: 11500000, guid: 6b25acc37eacd484d90d5fb0d113d6e2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Sliceable
+  m_EditorClassIdentifier: Assembly-CSharp::ObjectSliceable
   internalMaterial: {fileID: 0}
   canBeCut: 1
-  currentHitCountMax: 0
-  damage: 0
+  currentHitCountMax: 4
   isBroken: 0
-  isHead: 0
-  isHip: 0
