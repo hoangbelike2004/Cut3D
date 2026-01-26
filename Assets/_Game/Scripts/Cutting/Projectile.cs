@@ -52,17 +52,6 @@ public class Projectile : GameUnit
         savedScale = transform.localScale;
     }
 
-    // [ĐÃ SỬA] Xóa Update đi, chỉ để lại check cha chết (nếu cần)
-    // Hoặc nếu muốn tối ưu hơn, chuyển check cha chết vào Coroutine riêng
-    void Update()
-    {
-        // Chỉ kiểm tra khi đang stick
-        if (isStick && targetParent == null)
-        {
-            DespawnSelf();
-        }
-    }
-
     // [MỚI] Coroutine thay thế cho Update
     IEnumerator FlyRoutine()
     {
