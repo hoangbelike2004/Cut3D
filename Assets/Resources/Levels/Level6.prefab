@@ -1550,6 +1550,10 @@ PrefabInstance:
       propertyPath: m_Mass
       value: 0.1
       objectReference: {fileID: 0}
+    - target: {fileID: 5211656148075378731, guid: 7d21f4c1ba32c4cba89648eeb5c755ca, type: 3}
+      propertyPath: enemyType
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7030253411142421672, guid: 7d21f4c1ba32c4cba89648eeb5c755ca, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

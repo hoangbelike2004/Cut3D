@@ -345,8 +345,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   maxDragDistance: 400
   minDragDistance: 10
-  minScale: 0.25
-  maxScale: 1.5
   distanceFromCamera: 5
   lineWidth: 0.05
 --- !u!120 &122094045989116614
@@ -639,6 +637,10 @@ PrefabInstance:
     - target: {fileID: 6581838721048839337, guid: 2123a06213fd54a3f9e3a586fc39393d, type: 3}
       propertyPath: m_TagString
       value: Wall
+      objectReference: {fileID: 0}
+    - target: {fileID: 6896949587371691864, guid: 2123a06213fd54a3f9e3a586fc39393d, type: 3}
+      propertyPath: isHip
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6896949587371691864, guid: 2123a06213fd54a3f9e3a586fc39393d, type: 3}
       propertyPath: currentHitCountMax

@@ -23,11 +23,13 @@ public class GameController : Singleton<GameController>
     {
         currentLevel++;
         canvasGameplay.ShowGameComplete();
+        Observer.OnDespawnObject?.Invoke();
         Invoke(nameof(LoadLevel), timeLoadLevel);
     }
 
     public void ReplayGame()
     {
+        Observer.OnDespawnObject?.Invoke();
         Invoke(nameof(LoadLevel), timeLoadLevel);
     }
     public void LoadLevel()
@@ -37,7 +39,6 @@ public class GameController : Singleton<GameController>
         canvasGameplay.ResetUI();
         if (level != null)
         {
-            Observer.OnDespawnObject?.Invoke();
             level.ResetLevel();
             Destroy(level.gameObject);
             level = null;

@@ -1280,6 +1280,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6896949587371691864, guid: 2123a06213fd54a3f9e3a586fc39393d, type: 3}
+      propertyPath: isHip
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6896949587371691864, guid: 2123a06213fd54a3f9e3a586fc39393d, type: 3}
       propertyPath: currentHitCountMax
       value: 0
       objectReference: {fileID: 0}

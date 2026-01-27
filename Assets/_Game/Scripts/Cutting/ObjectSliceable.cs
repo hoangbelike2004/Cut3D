@@ -72,16 +72,25 @@ public class ObjectSliceable : MonoBehaviour
                     // 2. Set nó làm con của Sliceable này
                     container.transform.SetParent(transform);
 
-                    // 3. Reset toạ độ về 0 so với cha
+                    // 3. Reset toạ độ và xoay
                     container.transform.localPosition = Vector3.zero;
                     container.transform.localRotation = Quaternion.identity;
-                    container.transform.localScale = Vector3.one;
+
+                    // --- [SỬA LỖI BÓP MÉO TẠI ĐÂY] ---
+                    // Thay vì set Vector3.one, ta phải set nghịch đảo của cha
+                    // Công thức: Con = 1 / Cha
+                    Vector3 parentScale = transform.localScale;
+                    container.transform.localScale = new Vector3(
+                        1f / parentScale.x,
+                        1f / parentScale.y,
+                        1f / parentScale.z
+                    );
+                    // ---------------------------------
 
                     stuckProjectilesContainer = container.transform;
                 }
 
-                // [QUAN TRỌNG] Truyền cái Container vào cho Projectile dính vào
-                // Thay vì truyền 'transform' (chính mình), ta truyền 'stuckProjectilesContainer'
+                // Truyền Container vào
                 projectile.StickProjectile(stuckProjectilesContainer);
             }
         }
