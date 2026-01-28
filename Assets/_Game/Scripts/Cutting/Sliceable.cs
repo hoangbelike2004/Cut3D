@@ -6,7 +6,7 @@ public class Sliceable : MonoBehaviour
     [Header("Cấu hình")]
     public Material internalMaterial;
     public bool canBeCut = true;
-
+    public bool changeColor = true;
     [Header("Trạng thái (Debug)")]
     public int currentHitCountMax = 0;
     public int damage;
@@ -54,6 +54,7 @@ public class Sliceable : MonoBehaviour
             {
                 // Xử lý khi bị vỡ (Slice)
                 List<Transform> tfs = projectiles.ConvertAll(x => x.transform);
+                Observer.OnCuttingMultipObject?.Invoke(tfs, transform);
                 for (int i = 0; i < tfs.Count; i++)
                 {
                     if (projectiles[i].isStick)
@@ -61,9 +62,8 @@ public class Sliceable : MonoBehaviour
                         projectiles[i].DespawnSelf();
                     }
                 }
-                parent.Hit(projectiles.Count * damage);
+                if (parent != null) parent.Hit(projectiles.Count * damage);
                 GameController.Instance.DelayGame();
-                Observer.OnCuttingMultipObject?.Invoke(tfs, transform);
 
                 projectiles.Clear();
 
@@ -84,7 +84,7 @@ public class Sliceable : MonoBehaviour
 
                     // 2. Set nó làm con của Sliceable này
                     if (isHip) container.transform.SetParent(this.transform);
-                    else container.transform.SetParent(this.transform.parent);
+                    else container.transform.SetParent(this.transform);
 
                     // 3. Reset toạ độ về 0 so với cha
                     container.transform.localPosition = Vector3.zero;
@@ -108,7 +108,21 @@ public class Sliceable : MonoBehaviour
         this.parent = sliceable.GetParent;
     }
 
+    public void DeadPart()
+    {
+        currentHitCountMax = 0;
+        damage = 0;
+    }
+
     public Sliceable GetParentOld => sliceable != null ? sliceable : this;
 
     public Enemy GetParent => parent;
+    void OnDestroy()
+    {
+        // Xóa bỏ tất cả projectiles khi đối tượng bị hủy
+        foreach (var projectile in projectiles)
+        {
+            projectile.DespawnSelf();
+        }
+    }
 }

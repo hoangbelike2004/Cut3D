@@ -33,7 +33,7 @@ public class Level : MonoBehaviour
         }
         if (enemies.Count == 0)
         {
-            GameController.Instance.GameComplete();
+            GameController.Instance.SetState(eGameState.GameWin);
         }
     }
 

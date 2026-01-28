@@ -6,7 +6,7 @@ public class ObjectSliceable : MonoBehaviour
     [Header("Cấu hình")]
     public Material internalMaterial; // Vật liệu bên trong khi cắt
     public bool canBeCut = true;
-
+    public bool changeColor = true;
     [Header("Trạng thái (Debug)")]
     public int currentHitCountMax = 0; // Số lần chém cần thiết để cắt (0 là chém phát đứt luôn)
 
@@ -52,7 +52,7 @@ public class ObjectSliceable : MonoBehaviour
                 {
                     if (projectiles[i].isStick)
                     {
-                        projectiles[i].gameObject.SetActive(false);
+                        projectiles[i].DespawnSelf();
                     }
                 }
 
@@ -75,16 +75,6 @@ public class ObjectSliceable : MonoBehaviour
                     // 3. Reset toạ độ và xoay
                     container.transform.localPosition = Vector3.zero;
                     container.transform.localRotation = Quaternion.identity;
-
-                    // --- [SỬA LỖI BÓP MÉO TẠI ĐÂY] ---
-                    // Thay vì set Vector3.one, ta phải set nghịch đảo của cha
-                    // Công thức: Con = 1 / Cha
-                    Vector3 parentScale = transform.localScale;
-                    container.transform.localScale = new Vector3(
-                        1f / parentScale.x,
-                        1f / parentScale.y,
-                        1f / parentScale.z
-                    );
                     // ---------------------------------
 
                     stuckProjectilesContainer = container.transform;
@@ -107,4 +97,12 @@ public class ObjectSliceable : MonoBehaviour
 
     // Lấy đối tượng gốc (để check trùng lặp trong Projectile)
     public ObjectSliceable GetOriginOld => originObject != null ? originObject : this;
+    void OnDestroy()
+    {
+        // Xóa bỏ tất cả projectiles khi đối tượng bị hủy
+        foreach (var projectile in projectiles)
+        {
+            projectile.DespawnSelf();
+        }
+    }
 }

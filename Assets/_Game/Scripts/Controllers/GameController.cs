@@ -1,8 +1,18 @@
 using System.Collections;
 using UnityEngine;
 
+public enum eGameState
+{
+    None,
+    Home,
+    Playing,
+    GameWin,
+    GameOver
+}
 public class GameController : Singleton<GameController>
 {
+
+    public eGameState State => currentState;
     [SerializeField] private int currentLevel = 1;
 
     [SerializeField] private float timeLoadLevel;
@@ -13,28 +23,55 @@ public class GameController : Singleton<GameController>
 
     private CanvasGameplay canvasGameplay;
     private Level level;
+
+    private eGameState currentState;
     void Start()
     {
         canvasGameplay = UIManager.Instance.OpenUI<CanvasGameplay>();
-        LoadLevel();
+        StartCoroutine(Playing(true));
     }
+    public void SetState(eGameState newState)
+    {
+        if (newState == currentState) return;
 
+        currentState = newState;
+        switch (currentState)
+        {
+            case eGameState.Home:
+                break;
+            case eGameState.GameWin:
+                GameComplete();
+                break;
+            case eGameState.GameOver:
+                ReplayGame();
+                break;
+        }
+    }
     public void GameComplete()
     {
         currentLevel++;
         canvasGameplay.ShowGameComplete();
-        Observer.OnDespawnObject?.Invoke();
-        Invoke(nameof(LoadLevel), timeLoadLevel);
+        StartCoroutine(Playing(false));
+        //Invoke(nameof(LoadLevel), timeLoadLevel);
     }
 
     public void ReplayGame()
     {
-        Observer.OnDespawnObject?.Invoke();
-        Invoke(nameof(LoadLevel), timeLoadLevel);
+        StartCoroutine(Playing(false));
+        //Invoke(nameof(LoadLevel), timeLoadLevel);
     }
-    public void LoadLevel()
+    IEnumerator Playing(bool isStart)
     {
-        //destroy level cũ
+        if (!isStart)
+        {
+            yield return new WaitForSeconds(timeLoadLevel / 2);
+            Observer.OnDespawnObject?.Invoke();
+            yield return new WaitForSeconds(timeLoadLevel / 2);
+        }
+        else
+        {
+            yield return null;
+        }
         canvasGameplay.UpdateLevel(currentLevel);
         canvasGameplay.ResetUI();
         if (level != null)
@@ -43,6 +80,7 @@ public class GameController : Singleton<GameController>
             Destroy(level.gameObject);
             level = null;
         }
+        currentState = eGameState.Playing;
         level = Resources.Load<Level>(GameConstants.KEY_LEVEL + currentLevel);
         level = Instantiate(level);
     }

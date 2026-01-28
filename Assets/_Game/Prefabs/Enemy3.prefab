@@ -242,13 +242,13 @@ ConfigurableJoint:
   m_AngularXDrive:
     serializedVersion: 4
     positionSpring: 800
-    positionDamper: 0
+    positionDamper: 50
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_AngularYZDrive:
     serializedVersion: 4
     positionSpring: 800
-    positionDamper: 0
+    positionDamper: 50
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_SlerpDrive:
@@ -316,7 +316,6 @@ MonoBehaviour:
   enemyType: 0
   attackRange: 10
   fireRate: 2
-  bulletSpeed: 20
   isMoving: 1
   activeBodyParts:
   - name: 
@@ -358,11 +357,11 @@ MonoBehaviour:
   walkSpeed: 10
   maxSpeed: 5
   moveForce: 100
+  stopDistance: 0.5
   hipSwingAngle: 45
   kneeBendAngle: 40
   armSwingAngle: 45
   elbowBendAngle: 30
-  stopDistance: 0.5
   objectCamFolow: {fileID: 2214644069763673785}
   breakForce: 300
   breakRadius: 2
@@ -1756,31 +1755,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1177451046658632730, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.6476853
+      value: 0.64565533
       objectReference: {fileID: 0}
     - target: {fileID: 1177451046658632730, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.3403285
+      value: 0.34604484
       objectReference: {fileID: 0}
     - target: {fileID: 1177451046658632730, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.55297995
+      value: 0.5748511
       objectReference: {fileID: 0}
     - target: {fileID: 1177451046658632730, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.39861438
+      value: -0.36459365
       objectReference: {fileID: 0}
     - target: {fileID: 1177451046658632730, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: 60
       objectReference: {fileID: 0}
     - target: {fileID: 1177451046658632730, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: 78.51
       objectReference: {fileID: 0}
     - target: {fileID: 1177451046658632730, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
+      value: -8.39
       objectReference: {fileID: 0}
     - target: {fileID: 1953706618697791136, guid: a25f21c2ee128a84ab16e00a780d6ba3, type: 3}
       propertyPath: m_Name

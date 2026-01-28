@@ -10,6 +10,8 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Khoảng cách kéo tối thiểu. Nếu ngắn hơn mức này sẽ không ném.")]
     public float minDragDistance = 10f; // <--- MỚI: Ngưỡng kiểm tra
 
+    [Tooltip("Chế độ ném thẳng hay cong")]
+    public bool isStraight = false;
     [Header("Cài đặt Vũ Khí")]
     private float minScale = 0.1f;
     private float maxScale = 1.25f;
@@ -49,6 +51,8 @@ public class PlayerController : MonoBehaviour
 
     void HandleInput()
     {
+        if (GameController.Instance.State != eGameState.Playing)
+            return;
         // 1. BẮT ĐẦU KÉO
         if (Input.GetMouseButtonDown(0))
         {
@@ -119,7 +123,7 @@ public class PlayerController : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, 1000f))
         {
-            // Trúng bất cứ cái gì có Collider là ném
+            // Trúng bất cứ cái gì có Collider là némf
             ThrowWeapon(hit.point, finalScale, powerRatio);
         }
         else
@@ -147,7 +151,14 @@ public class PlayerController : MonoBehaviour
             float finalAngle = -angle;
 
             // Gọi hàm
-            axe.InitializeArcThrow(targetPosition, powerRatio, finalAngle);
+            axe.InitializeArcThrow(targetPosition, powerRatio, finalAngle, isStraight);
+        }
+    }
+    void OnCollisionEnter(Collision other)
+    {
+        if (other.collider.CompareTag("Enemy") || other.collider.CompareTag("Bullet"))
+        {
+            if (GameController.Instance != null) GameController.Instance.SetState(eGameState.GameOver);
         }
     }
 }

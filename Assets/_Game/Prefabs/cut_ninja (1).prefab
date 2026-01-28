@@ -10,15 +10,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 4681db717c7714f249ac7c6bcc877806, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.1
+      value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4681db717c7714f249ac7c6bcc877806, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.1
+      value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4681db717c7714f249ac7c6bcc877806, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.1
+      value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4681db717c7714f249ac7c6bcc877806, type: 3}
       propertyPath: m_LocalPosition.x
@@ -67,6 +67,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 4681db717c7714f249ac7c6bcc877806, type: 3}
       propertyPath: m_Name
       value: cut_ninja (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 4681db717c7714f249ac7c6bcc877806, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -157,6 +161,5 @@ MonoBehaviour:
   wallLayer:
     serializedVersion: 2
     m_Bits: 128
-  hitRotationOffset: {x: 0, y: 0, z: 0}
   isStick: 0
   rotation: {x: 0, y: -90, z: 0}

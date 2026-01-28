@@ -10,7 +10,13 @@ public class Cutting : MonoBehaviour
     public Material defaultCrossSectionMaterial;
     public float explosionForce = 100f;
 
+    [Header("--- VISUAL ---")]
+    [Range(0f, 1f)] public float deadPartDarkenFactor = 0.2f;
+
     private Transform parent => transform.root;
+
+    void OnEnable() { Observer.OnCuttingMultipObject += PerformSlice; }
+    void OnDisable() { Observer.OnCuttingMultipObject -= PerformSlice; }
 
     public void PerformSlice(List<Transform> activePlanes, Transform objectCut)
     {
@@ -43,22 +49,18 @@ public class Cutting : MonoBehaviour
         Sliceable sliceData = target.GetComponent<Sliceable>();
         bool isHead = sliceData != null && sliceData.isHead;
 
-        // Lưu lại thông tin Enemy cũ trước khi cắt
         Enemy originalEnemy = target.GetComponentInParent<Enemy>();
-        GameObject headObject = (originalEnemy != null) ? originalEnemy.GetHeadObject() : null;
+        GameObject headObject = FindHeadObject(target, originalEnemy);
 
         Transform originalParent = target.transform.parent;
         Vector3 originalPos = target.transform.position;
         Quaternion originalRot = target.transform.rotation;
-        Vector3 originalLocalScale = target.transform.localScale;
-
-        // [QUAN TRỌNG] Lấy kích thước toàn cục (World Scale) để dùng khi đưa ra ngoài
         Vector3 originalWorldScale = target.transform.lossyScale;
 
         Rigidbody originalRb = target.GetComponent<Rigidbody>();
         ConfigurableJoint originalJoint = target.GetComponent<ConfigurableJoint>();
 
-        bool isRagdoll = originalJoint != null || target.GetComponentInChildren<ConfigurableJoint>() != null || isHead;
+        UnityEngine.Plane slicePlane = new UnityEngine.Plane(plane.forward, plane.position);
 
         Vector3 cutPosition = plane.position;
         Collider targetCol = target.GetComponent<Collider>();
@@ -73,64 +75,123 @@ public class Cutting : MonoBehaviour
             GameObject upperHull = hull.CreateUpperHull(target, mat);
             GameObject lowerHull = hull.CreateLowerHull(target, mat);
 
-            // Báo cáo mất bộ phận
             if (originalEnemy != null) originalEnemy.RemovePart(target);
 
             GameObject rootPart, fallPart;
-            DecideRootAndFall(target, plane, upperHull, lowerHull, out rootPart, out fallPart);
+
+            DecideRootAndFall(target, slicePlane, upperHull, lowerHull, headObject, out rootPart, out fallPart);
 
             SetupHull(rootPart, originalPos, originalRot, originalWorldScale, false, originalRb);
             SetupHull(fallPart, originalPos, originalRot, originalWorldScale, true, originalRb);
 
-            // --- 1. XỬ LÝ PHẦN GỐC (ROOT PART - GIỮ NGUYÊN) ---
+            // =========================================================================
+            // [CẬP NHẬT] Xử lý Tag & Script ObjectSliceable
+            // =========================================================================
+            if (target.CompareTag("Object"))
+            {
+                rootPart.tag = "Object";
+                fallPart.tag = "Object";
+                ObjectSliceable originalComp = target.GetComponent<ObjectSliceable>();
+
+                // --- Xử lý cho phần ROOT ---
+                ObjectSliceable rootSlice = rootPart.GetComponent<ObjectSliceable>();
+                if (rootSlice == null) rootSlice = rootPart.AddComponent<ObjectSliceable>();
+
+                if (originalComp != null)
+                {
+                    rootSlice.SetOriginOld(originalComp);
+                    // [MỚI] Copy biến changeColor sang mảnh mới
+                    rootSlice.changeColor = originalComp.changeColor;
+                }
+
+                // --- Xử lý cho phần FALL ---
+                ObjectSliceable fallSlice = fallPart.GetComponent<ObjectSliceable>();
+                if (fallSlice == null) fallSlice = fallPart.AddComponent<ObjectSliceable>();
+
+                if (originalComp != null)
+                {
+                    // [MỚI] Copy biến changeColor sang mảnh mới
+                    fallSlice.changeColor = originalComp.changeColor;
+                }
+            }
+            // =========================================================================
+
+            // Xử lý Hierarchy
+            bool isStillAttached = false;
             if (originalParent != null)
             {
                 rootPart.name = target.name + "1";
                 rootPart.transform.SetParent(originalParent, true);
-                rootPart.transform.localScale = originalLocalScale; // Vẫn ở trong cha cũ nên dùng LocalScale
+                rootPart.transform.localScale = target.transform.localScale;
+                isStillAttached = true;
             }
             else
             {
                 rootPart.name = target.name + "1";
                 rootPart.transform.localScale = originalWorldScale;
+                isStillAttached = false;
             }
+
             CopySliceableConfig(target, rootPart, true);
 
-            // --- 2. XỬ LÝ PHẦN RƠI RA (FALL PART - ĐÃ SỬA LỖI BÉ) ---
             fallPart.name = target.name + "_Broken";
-
-            // Đưa thẳng ra Root (hoặc Level) như ý bạn muốn
             fallPart.transform.SetParent(transform.root, true);
-
-            // [FIX LỖI BÉ] Dùng WorldScale vì khi ra ngoài nó không còn hưởng Scale của Enemy nữa
             fallPart.transform.localScale = originalWorldScale;
-
             CopySliceableConfig(target, fallPart, false);
 
-            // --- DI CHUYỂN CON CÁI ---
-            ReparentChildren(target, upperHull, lowerHull, plane.forward, cutPosition);
+            ReparentChildren(target, upperHull, lowerHull, slicePlane);
 
-            // [LOGIC TRAO SỰ SỐNG CHO ĐẦU]
             if (target.GetComponent<Enemy>() != null)
             {
                 CopyComponent(target.GetComponent<Enemy>(), rootPart);
                 CopyComponent(target.GetComponent<Enemy>(), fallPart);
             }
 
+            // =========================================================================
+            // [LOGIC SỰ SỐNG]
+            // =========================================================================
+
+            bool rootIsDead = true;
+            bool fallIsDead = true;
+
             if (headObject != null)
             {
-                bool headInRoot = headObject.transform.IsChildOf(rootPart.transform);
-                bool headInFall = headObject.transform.IsChildOf(fallPart.transform);
-
-                if (headInRoot) DestroyEnemyScript(fallPart);
-                else if (headInFall) DestroyEnemyScript(rootPart);
-                else DestroyEnemyScript(fallPart);
+                if (headObject.transform.IsChildOf(rootPart.transform))
+                {
+                    rootIsDead = false;
+                    fallIsDead = true;
+                }
+                else if (headObject.transform.IsChildOf(fallPart.transform))
+                {
+                    fallIsDead = false;
+                    rootIsDead = true;
+                }
+                else
+                {
+                    if (isStillAttached)
+                    {
+                        rootIsDead = false;
+                        fallIsDead = true;
+                    }
+                    else
+                    {
+                        rootIsDead = true;
+                        fallIsDead = true;
+                    }
+                }
             }
             else
             {
-                DestroyEnemyScript(fallPart);
+                rootIsDead = true;
+                fallIsDead = true;
             }
 
+            if (rootIsDead) ProcessDeadPart(rootPart);
+            if (fallIsDead) ProcessDeadPart(fallPart);
+
+            // =========================================================================
+
+            bool isRagdoll = originalJoint != null || target.GetComponentInChildren<ConfigurableJoint>() != null || isHead;
             if (isRagdoll)
             {
                 CopyAllComponents(target, rootPart);
@@ -147,28 +208,152 @@ public class Cutting : MonoBehaviour
         return false;
     }
 
-    // Hàm phụ trợ xóa script Enemy
-    private void DestroyEnemyScript(GameObject obj)
+    // --- CÁC HÀM PHỤ TRỢ ---
+
+    private void ProcessDeadPart(GameObject part)
     {
-        Enemy e = obj.GetComponent<Enemy>();
-        if (e != null) Destroy(e);
+        if (part == null) return;
+        DestroyEnemyScript(part);
+        CheckAndDespawnProjectiles(part);
+        DarkenDeadPart(part);
+        NotifySliceableDead(part);
     }
 
-    // --- CÁC HÀM PHỤ TRỢ KHÁC ---
-    private void DecideRootAndFall(GameObject target, Transform plane, GameObject upper, GameObject lower, out GameObject root, out GameObject fall)
+    // [ĐÃ SỬA] Hàm làm tối hỗ trợ cả Sliceable và ObjectSliceable cho TỪNG Renderer
+    private void DarkenDeadPart(GameObject part)
     {
+        if (part == null) return;
+
+        Renderer[] renderers = part.GetComponentsInChildren<Renderer>();
+        foreach (Renderer r in renderers)
+        {
+            // 1. Kiểm tra Sliceable (Enemy)
+            Sliceable localSlice = r.GetComponentInParent<Sliceable>();
+            if (localSlice != null && localSlice.changeColor == false) continue;
+
+            // 2. Kiểm tra ObjectSliceable (Vật thể môi trường)
+            ObjectSliceable localObjectSlice = r.GetComponentInParent<ObjectSliceable>();
+            if (localObjectSlice != null && localObjectSlice.changeColor == false) continue;
+
+            // --- Nếu không bị cấm thì mới đổi màu ---
+            Material[] mats = r.materials;
+            for (int i = 0; i < mats.Length; i++)
+            {
+                Material m = mats[i];
+                Color currentColor = Color.white;
+                if (m.HasProperty("_BaseColor")) currentColor = m.GetColor("_BaseColor");
+                else if (m.HasProperty("_Color")) currentColor = m.GetColor("_Color");
+                else currentColor = m.color;
+
+                Color darkColor = currentColor * deadPartDarkenFactor;
+
+                if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", darkColor);
+                if (m.HasProperty("_Color")) m.SetColor("_Color", darkColor);
+                m.color = darkColor;
+            }
+            r.materials = mats;
+        }
+    }
+
+    private void CopySliceableConfig(GameObject source, GameObject dest, bool isRoot)
+    {
+        Sliceable sourceData = source.GetComponent<Sliceable>();
+        if (sourceData != null)
+        {
+            Sliceable destData = dest.AddComponent<Sliceable>();
+            destData.internalMaterial = sourceData.internalMaterial;
+            destData.canBeCut = sourceData.canBeCut;
+            destData.isHead = sourceData.isHead;
+            destData.changeColor = sourceData.changeColor; // Copy cho Sliceable
+
+            destData.SetParentOld(sourceData.GetParentOld);
+
+            if (isRoot && sourceData.isHead)
+            {
+                if (sourceData.GetParent != null && sourceData.GetParent.objectCamFolow != null)
+                {
+                    Transform tf = sourceData.GetParent.objectCamFolow.transform;
+                    tf.SetParent(dest.transform);
+                    tf.localPosition = Vector3.zero;
+                }
+            }
+        }
+    }
+
+    // --- CÁC HÀM KHÁC GIỮ NGUYÊN ---
+
+    private GameObject FindHeadObject(GameObject target, Enemy enemyScript)
+    {
+        if (enemyScript != null)
+        {
+            var head = enemyScript.GetHeadObject();
+            if (head != null) return head;
+        }
+        var slices = target.GetComponentsInChildren<Sliceable>(true);
+        foreach (var s in slices) { if (s.isHead) return s.gameObject; }
+        Transform[] allChildren = target.GetComponentsInChildren<Transform>(true);
+        foreach (var t in allChildren) { if (t.name.ToUpper().Contains("HEAD")) return t.gameObject; }
+        return null;
+    }
+
+    private void DecideRootAndFall(GameObject target, UnityEngine.Plane slicePlane, GameObject upper, GameObject lower, GameObject headObject, out GameObject root, out GameObject fall)
+    {
+        if (headObject != null)
+        {
+            bool headOnUpper = slicePlane.GetSide(headObject.transform.position);
+            if (headOnUpper) { root = upper; fall = lower; }
+            else { root = lower; fall = upper; }
+            return;
+        }
         Vector3 checkPoint = target.transform.position;
         ConfigurableJoint joint = target.GetComponent<ConfigurableJoint>();
-
         if (joint != null && joint.connectedBody != null) checkPoint = joint.connectedBody.transform.position;
         else if (target.transform.parent != null) checkPoint = target.transform.parent.position;
         else if (joint != null) checkPoint = target.transform.TransformPoint(joint.anchor);
 
-        UnityEngine.Plane slicePlane = new UnityEngine.Plane(plane.forward, plane.position);
         bool bodyIsOnUpperSide = slicePlane.GetSide(checkPoint);
-
         if (bodyIsOnUpperSide) { root = upper; fall = lower; }
         else { root = lower; fall = upper; }
+    }
+
+    private void CheckAndDespawnProjectiles(GameObject part)
+    {
+        if (part == null) return;
+        Projectile[] attachedProjectiles = part.GetComponentsInChildren<Projectile>(true);
+        foreach (Projectile proj in attachedProjectiles)
+        {
+            if (proj != null && proj.gameObject != null) { try { proj.DespawnSelf(); } catch { } }
+        }
+    }
+
+    private void NotifySliceableDead(GameObject part)
+    {
+        if (part == null) return;
+        Sliceable[] sliceables = part.GetComponentsInChildren<Sliceable>(true);
+        foreach (var slice in sliceables) { if (slice != null) { try { slice.DeadPart(); } catch { } } }
+    }
+
+    private void DestroyEnemyScript(GameObject obj)
+    {
+        if (obj == null) return;
+        Enemy e = obj.GetComponent<Enemy>();
+        if (e != null) Destroy(e);
+    }
+
+    private void ReparentChildren(GameObject originalTarget, GameObject upperHull, GameObject lowerHull, UnityEngine.Plane slicePlane)
+    {
+        for (int i = originalTarget.transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child = originalTarget.transform.GetChild(i);
+            if (child.name.Contains("_Broken")) continue;
+
+            Vector3 checkPos = child.position;
+            Renderer childRend = child.GetComponent<Renderer>();
+            if (childRend != null) checkPos = childRend.bounds.center;
+
+            if (slicePlane.GetSide(checkPos)) child.SetParent(upperHull.transform, true);
+            else child.SetParent(lowerHull.transform, true);
+        }
     }
 
     private void ReconnectJoint(GameObject rootPart, ConfigurableJoint originalJoint)
@@ -176,7 +361,6 @@ public class Cutting : MonoBehaviour
         Rigidbody connectedBody = originalJoint.connectedBody;
         ConfigurableJoint existing = rootPart.GetComponent<ConfigurableJoint>();
         if (existing != null) DestroyImmediate(existing);
-
         ConfigurableJoint newJoint = rootPart.AddComponent<ConfigurableJoint>();
         newJoint.connectedBody = connectedBody;
         CopyJointProperties(originalJoint, newJoint);
@@ -187,17 +371,11 @@ public class Cutting : MonoBehaviour
         hull.transform.position = pos;
         hull.transform.rotation = rot;
         hull.transform.localScale = scale;
-
         if (hull.GetComponent<Collider>() == null) hull.AddComponent<BoxCollider>();
-
         Rigidbody rb = hull.GetComponent<Rigidbody>();
         if (rb == null) rb = hull.AddComponent<Rigidbody>();
-
-        // --- [ĐÃ SỬA] CÀI ĐẶT RIGIDBODY ---
-        rb.interpolation = RigidbodyInterpolation.Interpolate; // Làm mượt chuyển động
-        rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // Tránh xuyên tường khi bay nhanh
-        // ----------------------------------
-
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         if (originalRb != null)
         {
             rb.mass = originalRb.mass;
@@ -205,20 +383,28 @@ public class Cutting : MonoBehaviour
             rb.linearDamping = originalRb.linearDamping;
             rb.angularDamping = originalRb.angularDamping;
         }
-
         if (isAddforce) rb.AddExplosionForce(explosionForce, pos, 1f);
         else if (originalRb != null)
         {
             rb.linearVelocity = originalRb.linearVelocity;
             rb.angularVelocity = originalRb.angularVelocity;
         }
-
         if (layerToCut.value > 0)
         {
             int layerIndex = 0; int layerValue = layerToCut.value;
             while (layerValue > 1) { layerValue >>= 1; layerIndex++; }
             hull.layer = layerIndex;
             hull.tag = "Enemy";
+        }
+    }
+
+    private void ConnectChildrenToHull(GameObject hull)
+    {
+        Rigidbody hullRb = hull.GetComponent<Rigidbody>();
+        foreach (Transform child in hull.transform)
+        {
+            ConfigurableJoint childJoint = child.GetComponent<ConfigurableJoint>();
+            if (childJoint != null) childJoint.connectedBody = hullRb;
         }
     }
 
@@ -257,32 +443,6 @@ public class Cutting : MonoBehaviour
         dest.connectedMassScale = source.connectedMassScale;
     }
 
-    private void ReparentChildren(GameObject originalTarget, GameObject upperHull, GameObject lowerHull, Vector3 planeNormal, Vector3 planePos)
-    {
-        UnityEngine.Plane slicePlane = new UnityEngine.Plane(planeNormal, planePos);
-        for (int i = originalTarget.transform.childCount - 1; i >= 0; i--)
-        {
-            Transform child = originalTarget.transform.GetChild(i);
-            if (child.name.Contains("_Broken")) continue;
-            Vector3 checkPos = child.position;
-            Renderer childRend = child.GetComponent<Renderer>();
-            if (childRend != null) checkPos = childRend.bounds.center;
-
-            if (slicePlane.GetSide(checkPos)) child.SetParent(upperHull.transform, true);
-            else child.SetParent(lowerHull.transform, true);
-        }
-    }
-
-    private void ConnectChildrenToHull(GameObject hull)
-    {
-        Rigidbody hullRb = hull.GetComponent<Rigidbody>();
-        foreach (Transform child in hull.transform)
-        {
-            ConfigurableJoint childJoint = child.GetComponent<ConfigurableJoint>();
-            if (childJoint != null) childJoint.connectedBody = hullRb;
-        }
-    }
-
     private void CopyAllComponents(GameObject source, GameObject dest)
     {
         Component[] components = source.GetComponents<Component>();
@@ -310,30 +470,4 @@ public class Cutting : MonoBehaviour
         foreach (System.Reflection.FieldInfo field in fields) field.SetValue(copy, field.GetValue(original));
         return copy;
     }
-
-    private void CopySliceableConfig(GameObject source, GameObject dest, bool isRoot)
-    {
-        Sliceable sourceData = source.GetComponent<Sliceable>();
-        if (sourceData != null)
-        {
-            Sliceable destData = dest.AddComponent<Sliceable>();
-            destData.internalMaterial = sourceData.internalMaterial;
-            destData.canBeCut = sourceData.canBeCut;
-            destData.isHead = sourceData.isHead;
-            destData.SetParentOld(sourceData.GetParentOld);
-
-            if (isRoot && sourceData.isHead)
-            {
-                if (sourceData.GetParent != null && sourceData.GetParent.objectCamFolow != null)
-                {
-                    Transform tf = sourceData.GetParent.objectCamFolow.transform;
-                    tf.SetParent(dest.transform);
-                    tf.localPosition = Vector3.zero;
-                }
-            }
-        }
-    }
-
-    void OnEnable() { Observer.OnCuttingMultipObject += PerformSlice; }
-    void OnDisable() { Observer.OnCuttingMultipObject -= PerformSlice; }
 }

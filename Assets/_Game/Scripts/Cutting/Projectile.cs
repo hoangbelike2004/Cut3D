@@ -1,14 +1,14 @@
 using UnityEngine;
 using DG.Tweening;
 using System.Collections.Generic;
-using System.Collections; // Cần thêm cái này để dùng Coroutine
+using System.Collections;
 
 public class Projectile : GameUnit
 {
     [Header("Physics Settings")]
     public float impactForce = 10f;
     [Header("Movement Mode")]
-    public bool flyStraight = false;
+    public bool flyStraight = false; // Biến này sẽ được set lại khi gọi hàm Initialize
 
     [Header("Settings")]
     public float flySpeed = 20f;
@@ -44,7 +44,6 @@ public class Projectile : GameUnit
 
     // Biến lưu tham chiếu Coroutine để dừng khi cần
     private Coroutine flightCoroutine;
-
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -52,23 +51,20 @@ public class Projectile : GameUnit
         savedScale = transform.localScale;
     }
 
-    // [MỚI] Coroutine thay thế cho Update
+    // Coroutine giữ nguyên của bạn
     IEnumerator FlyRoutine()
     {
         while (isMoving && !hasHit)
         {
-            // A. Tính toán hướng bay
             Vector3 displacement = transform.position - lastPosition;
             if (displacement.sqrMagnitude > 0.0001f)
             {
                 currentFlightDirection = displacement.normalized;
             }
 
-            // B. Tính góc xoay
             float spinSpeed = 360f / rotateDuration;
             currentSpinAngleZ -= spinSpeed * Time.deltaTime;
 
-            // C. Áp dụng xoay
             if (currentFlightDirection != Vector3.zero)
             {
                 Quaternion lookRot = Quaternion.LookRotation(currentFlightDirection);
@@ -79,18 +75,20 @@ public class Projectile : GameUnit
             }
 
             lastPosition = transform.position;
-
-            // Đợi đến frame tiếp theo
             yield return null;
         }
     }
 
-    public void InitializeArcThrow(Vector3 targetPosition, float speedMultiplier, float angleX)
+    // --- [HÀM ĐÃ SỬA] THÊM THAM SỐ bool isStraight ---
+    public void InitializeArcThrow(Vector3 targetPosition, float speedMultiplier, float angleX, bool isStraight)
     {
+        // 1. Cập nhật chế độ bay dựa trên tham số truyền vào
+        this.flyStraight = isStraight;
+
+        // Các phần dưới giữ nguyên y hệt code của bạn
         if (moveTween != null) moveTween.Kill();
         CancelInvoke(nameof(DespawnSelf));
 
-        // Dừng coroutine cũ nếu có
         if (flightCoroutine != null) StopCoroutine(flightCoroutine);
 
         sliceables.Clear();
@@ -98,7 +96,7 @@ public class Projectile : GameUnit
 
         isStick = false;
         hasHit = false;
-        isMoving = true; // Bật cờ chạy
+        isMoving = true;
         lastPosition = transform.position;
         targetParent = null;
 
@@ -117,7 +115,7 @@ public class Projectile : GameUnit
         Vector3 dir = (targetPosition - startPos).normalized;
         currentFlightDirection = dir;
 
-        // DI CHUYỂN (DOTween vẫn lo việc thay đổi position)
+        // DI CHUYỂN (DOTween sẽ check biến flyStraight vừa được set ở trên)
         if (flyStraight)
         {
             Vector3 overshootPoint = targetPosition + dir * 20f;
@@ -137,11 +135,12 @@ public class Projectile : GameUnit
             moveTween = transform.DOPath(path, pathLen / currentSpeed, PathType.CatmullRom).SetEase(Ease.Linear);
         }
 
-        // [MỚI] Bắt đầu Coroutine xoay và tính hướng
         flightCoroutine = StartCoroutine(FlyRoutine());
 
         Invoke(nameof(DespawnSelf), lifeTime);
     }
+
+    // --- CÁC HÀM DƯỚI GIỮ NGUYÊN KHÔNG ĐỤNG VÀO ---
 
     void OnTriggerEnter(Collider other)
     {
@@ -219,12 +218,10 @@ public class Projectile : GameUnit
     public void StickProjectile(Transform parent)
     {
         hasHit = true;
-        isMoving = false; // [QUAN TRỌNG] Đặt false để vòng lặp while trong Coroutine tự thoát
+        isMoving = false;
 
         CancelInvoke(nameof(DespawnSelf));
         if (moveTween != null) moveTween.Kill();
-
-        // Dừng thủ công cho chắc chắn (dù vòng lặp while cũng sẽ tự dừng)
         if (flightCoroutine != null) StopCoroutine(flightCoroutine);
 
         rb.isKinematic = true;

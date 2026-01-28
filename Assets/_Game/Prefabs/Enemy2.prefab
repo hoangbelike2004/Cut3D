@@ -242,13 +242,13 @@ ConfigurableJoint:
   m_AngularXDrive:
     serializedVersion: 4
     positionSpring: 800
-    positionDamper: 0
+    positionDamper: 50
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_AngularYZDrive:
     serializedVersion: 4
     positionSpring: 800
-    positionDamper: 0
+    positionDamper: 50
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_SlerpDrive:
@@ -316,7 +316,6 @@ MonoBehaviour:
   enemyType: 0
   attackRange: 10
   fireRate: 2
-  bulletSpeed: 20
   isMoving: 1
   activeBodyParts:
   - name: 
@@ -382,11 +381,11 @@ MonoBehaviour:
   walkSpeed: 10
   maxSpeed: 5
   moveForce: 100
+  stopDistance: 1
   hipSwingAngle: 45
   kneeBendAngle: 40
   armSwingAngle: 45
   elbowBendAngle: 30
-  stopDistance: 1
   objectCamFolow: {fileID: 1292404129920533863}
   breakForce: 300
   breakRadius: 2
