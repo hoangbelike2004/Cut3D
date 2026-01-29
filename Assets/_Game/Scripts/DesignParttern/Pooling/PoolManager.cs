@@ -58,6 +58,12 @@ public enum PoolType
 {
     None,
     Audio_Sources,
-    Weapon_Axe,
+    Weapon_Axe0,
     Bullet,
+    Weapon_Axe1,
+    Weapon_Axe2,
+    Weapon_Axe3,
+    Weapon_Axe4,
+    Weapon_Axe5,
+    Weapon_Axe6,
 }

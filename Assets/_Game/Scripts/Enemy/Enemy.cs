@@ -24,13 +24,18 @@ public class Enemy : MonoBehaviour
     [Header("Cài Đặt Tấn Công Tầm Xa")]
     public float attackRange = 10f;
     public float fireRate = 2f;
-    public float recoilForce = 20f; // [THÊM MỚI] Lực giật đầu khi bắn
+    public float recoilForce = 20f;
+
+    [Header("Cài Đặt Độ Chính Xác (Ranged Only)")]
+    public int minMissShots = 2;
+    public int maxMissShots = 5;
+    public float inaccuracyAngle = 15f;
+
     private float nextFireTime;
+    private int shotsLeftToMiss;
 
     [Header("Trạng thái")]
     public bool isMoving = true;
-
-    // [THÊM MỚI] Biến bật/tắt xoay người
     public bool enableRotation = true;
 
     [Header("DANH SÁCH BỘ PHẬN")]
@@ -45,8 +50,11 @@ public class Enemy : MonoBehaviour
     // Animation settings
     public float hipSwingAngle = 45f;
     public float kneeBendAngle = 40f;
-    public float armSwingAngle = 45f;
-    public float elbowBendAngle = 30f;
+
+    [Header("Cài Đặt Khua Tay (Chaos Arm)")]
+    public float armFlailSpeed = 8f;
+    public float armFlailRange = 60f;
+    public float elbowShake = 45f;
 
     private Rigidbody mainBody;
     private Transform target;
@@ -58,6 +66,7 @@ public class Enemy : MonoBehaviour
     public float breakRadius = 2f;
     private bool isDie;
     private Level level;
+    private float randomSeed;
 
     void Awake()
     {
@@ -67,6 +76,14 @@ public class Enemy : MonoBehaviour
             level.AddEnemy(this);
         }
         AutoSetupBodyParts();
+        randomSeed = Random.Range(0f, 100f);
+
+        if (enemyType == EnemyType.Ranged)
+        {
+            ResetMissCounter();
+            // Đặt thời gian chờ ngay từ đầu để tránh sinh ra là bắn luôn
+            nextFireTime = Time.time + fireRate;
+        }
     }
 
     void AutoSetupBodyParts()
@@ -96,54 +113,67 @@ public class Enemy : MonoBehaviour
     {
         if (target == null || hip == null || isDie) return;
 
-        // 1. TÍNH KHOẢNG CÁCH
         float distance = Vector3.Distance(new Vector3(hip.position.x, 0, hip.position.z),
                                           new Vector3(target.position.x, 0, target.position.z));
 
-        // 2. XOAY NGƯỜI (CÓ ĐIỀU KIỆN enableRotation)
-        // ---------------------------------------------------------------------
+        // --- 1. XOAY NGƯỜI (Vẫn giữ để nó hướng súng về player) ---
         if (enableRotation)
         {
             Vector3 dir = (target.position - hip.position).normalized;
             dir.y = 0;
             bool hasCore = activeBodyParts.Any(p => p.type == BodyPartType.Pelvis || p.type == BodyPartType.Spine);
 
-            if (dir != Vector3.zero && mainBody != null && hasCore)
+            // Chỉ xoay khi mục tiêu ở trong tầm tấn công hoặc gần đó (để không xoay lung tung khi player quá xa)
+            // Hoặc bỏ điều kiện distance nếu muốn nó luôn nhìn theo
+            if (dir != Vector3.zero && mainBody != null && hasCore && distance < attackRange * 1.5f)
             {
                 Quaternion lookRot = Quaternion.LookRotation(dir);
                 mainBody.MoveRotation(Quaternion.Slerp(mainBody.rotation, lookRot, 5f * Time.fixedDeltaTime));
             }
         }
-        // ---------------------------------------------------------------------
 
-        // 3. XỬ LÝ TRẠNG THÁI (ĐỨNG YÊN HAY DI CHUYỂN)
+        // --- 2. XỬ LÝ LOGIC ---
         if (enemyType == EnemyType.Melee)
         {
+            // Logic Melee cũ (Giữ nguyên)
             if (distance < stopDistance)
             {
                 isMoving = false;
-                ResetPose();
-                return;
+                ResetLegsOnly();
             }
         }
-        else // Ranged
+        else // --- [LOGIC RANGED - ĐỨNG YÊN] ---
         {
-            if (distance < attackRange)
+            // Ranged luôn luôn KHÔNG di chuyển chân
+            if (distance < stopDistance)
             {
                 isMoving = false;
-                ResetPose();
+                ResetLegsOnly(); // Đứng lại để ổn định khi đã áp sát
+            }
+            else
+            {
+                isMoving = true; // Kích hoạt animation chạy
+            }
+            if (distance < attackRange)
+            {
+                // Người chơi ĐÃ VÀO TẦM NGẮM
+                // Ta không can thiệp nextFireTime nữa -> Để nó tự trôi đi
+                // Sau đúng khoảng fireRate giây, nó sẽ bắn
                 ShootBehavior();
             }
             else
             {
-                isMoving = true;
+                // Người chơi Ở XA
+                // Liên tục đẩy lùi thời gian bắn về tương lai
+                // Ý nghĩa: "Mục tiêu chưa vào tầm, tao chưa nạp đạn xong"
+                nextFireTime = Time.time + fireRate;
             }
         }
 
-        if (!isMoving) return;
+        // --- 3. ANIMATION VÀ LỰC DI CHUYỂN ---
 
-        // 4. ANIMATION DI CHUYỂN
-        ResetDragForMovement();
+        // Chuẩn bị Drag (Chỉ áp dụng khi isMoving = true, mà Ranged thì isMoving = false nên nó sẽ dùng Drag lớn của ResetLegsOnly)
+        if (isMoving) ResetDragForMovement();
 
         Vector3 moveDir = (target.position - hip.position).normalized;
         moveDir.y = 0;
@@ -160,33 +190,59 @@ public class Enemy : MonoBehaviour
 
             switch (part.type)
             {
+                // --- CHÂN: Sẽ KHÔNG chạy vì Ranged có isMoving = false ---
                 case BodyPartType.UpperLeg:
-                    part.joint.targetRotation = Quaternion.Euler(cycle * hipSwingAngle * phase, 0, 0);
-                    if (part.rb != null && !currentSpeedIsHigh)
-                        part.rb.AddForce(moveDir * moveForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
-                    break;
-
-                case BodyPartType.LowerLeg:
-                    if (hasUpperLeg)
-                    {
-                        float kneeBend = (Mathf.Sin(Time.time * walkSpeed + (part.invertPhase ? Mathf.PI : 0)) + 1) * 0.5f * kneeBendAngle;
-                        part.joint.targetRotation = Quaternion.Euler(kneeBend, 0, 0);
-                    }
-                    else
+                    if (isMoving)
                     {
                         part.joint.targetRotation = Quaternion.Euler(cycle * hipSwingAngle * phase, 0, 0);
                         if (part.rb != null && !currentSpeedIsHigh)
                             part.rb.AddForce(moveDir * moveForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
                     }
                     break;
+
+                case BodyPartType.LowerLeg:
+                    if (isMoving)
+                    {
+                        if (hasUpperLeg)
+                        {
+                            float kneeBend = (Mathf.Sin(Time.time * walkSpeed + (part.invertPhase ? Mathf.PI : 0)) + 1) * 0.5f * kneeBendAngle;
+                            part.joint.targetRotation = Quaternion.Euler(kneeBend, 0, 0);
+                        }
+                        else
+                        {
+                            part.joint.targetRotation = Quaternion.Euler(cycle * hipSwingAngle * phase, 0, 0);
+                            if (part.rb != null && !currentSpeedIsHigh)
+                                part.rb.AddForce(moveDir * moveForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
+                        }
+                    }
+                    break;
+
                 case BodyPartType.Foot:
-                    part.joint.targetRotation = Quaternion.Euler(cycle * 10f * phase, 0, 0); break;
+                    if (isMoving) part.joint.targetRotation = Quaternion.Euler(cycle * 10f * phase, 0, 0);
+                    break;
+
+                // --- TAY: VẪN KHUA LOẠN XẠ (Vì nằm ngoài if isMoving) ---
                 case BodyPartType.UpperArm:
-                    part.joint.targetRotation = Quaternion.Euler(-cycle * armSwingAngle * phase, 0, 0); break;
+                    float noiseX = (Mathf.PerlinNoise(Time.time * armFlailSpeed * 0.5f, randomSeed + phase) - 0.5f) * 2f;
+                    float noiseY = (Mathf.PerlinNoise(Time.time * armFlailSpeed, randomSeed + phase + 100) - 0.5f) * 2f;
+                    float noiseZ = (Mathf.PerlinNoise(Time.time * armFlailSpeed * 0.8f, randomSeed + phase + 200) - 0.5f) * 2f;
+
+                    Quaternion chaosRot = Quaternion.Euler(noiseX * armFlailRange, noiseY * armFlailRange / 2, noiseZ * armFlailRange / 2 + (phase * 20));
+                    part.joint.targetRotation = chaosRot;
+                    if (part.rb != null) { part.rb.linearDamping = 0f; part.rb.angularDamping = 0.05f; }
+                    break;
+
                 case BodyPartType.LowerArm:
-                    part.joint.targetRotation = Quaternion.Euler(-elbowBendAngle, 0, 0); break;
+                    float elbowNoise = Mathf.PerlinNoise(Time.time * armFlailSpeed, randomSeed + phase + 300);
+                    float elbowBend = -10f - (elbowNoise * elbowShake);
+                    part.joint.targetRotation = Quaternion.Euler(elbowBend, 0, 0);
+                    if (part.rb != null) { part.rb.linearDamping = 0f; part.rb.angularDamping = 0.05f; }
+                    break;
+
                 default:
-                    part.joint.targetRotation = Quaternion.identity; break;
+                    if (part.type != BodyPartType.Head && part.type != BodyPartType.Spine && part.type != BodyPartType.Pelvis)
+                        part.joint.targetRotation = Quaternion.identity;
+                    break;
             }
         }
     }
@@ -196,45 +252,56 @@ public class Enemy : MonoBehaviour
         if (Time.time >= nextFireTime)
         {
             nextFireTime = Time.time + fireRate;
-            if (objectCamFolow != null)
+            if (objectCamFolow != null && target != null)
             {
+                Vector3 directionToTarget = (target.position - objectCamFolow.position).normalized;
+                Vector3 finalShootDirection = directionToTarget;
+
+                if (shotsLeftToMiss > 0)
+                {
+                    Vector3 noise = Random.insideUnitSphere * Mathf.Tan(inaccuracyAngle * Mathf.Deg2Rad);
+                    finalShootDirection = (directionToTarget + noise).normalized;
+                    shotsLeftToMiss--;
+                }
+                else
+                {
+                    ResetMissCounter();
+                }
+
+                objectCamFolow.rotation = Quaternion.LookRotation(finalShootDirection);
                 Bullet bullet = SimplePool.Spawn<Bullet>(PoolType.Bullet, objectCamFolow.position, objectCamFolow.rotation);
                 bullet.Initialize(objectCamFolow.forward);
-
-                // --- [THÊM MỚI] TẠO LỰC GIẬT (RECOIL) ---
                 ApplyRecoil();
             }
         }
     }
 
-    // [THÊM MỚI] Hàm xử lý lực giật
+    void ResetMissCounter()
+    {
+        shotsLeftToMiss = Random.Range(minMissShots, maxMissShots + 1);
+    }
+
     void ApplyRecoil()
     {
-        // 1. Tìm phần Đầu hoặc Ngực
         var headPart = activeBodyParts.FirstOrDefault(p => p.type == BodyPartType.Head);
         var spinePart = activeBodyParts.FirstOrDefault(p => p.type == BodyPartType.Spine);
-
-        // Ưu tiên giật đầu, nếu không có đầu thì giật ngực
         BodyPart partToRecoil = headPart != null ? headPart : spinePart;
 
         if (partToRecoil != null && partToRecoil.rb != null && objectCamFolow != null)
         {
-            // Lực giật ngược hướng bắn (ngược hướng forward của objectCamFolow)
-            // ForceMode.Impulse tạo một lực tức thời mạnh
             partToRecoil.rb.AddForce(objectCamFolow.forward * recoilForce, ForceMode.Impulse);
         }
     }
 
-    private void ResetPose()
+    private void ResetLegsOnly()
     {
         foreach (var part in activeBodyParts)
         {
+            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm) continue;
             if (part.joint != null) part.joint.targetRotation = Quaternion.identity;
-            if (part.rb != null)
-            {
-                part.rb.linearDamping = 10f;
-                part.rb.angularDamping = 10f;
-            }
+
+            // Tăng damping lên cao để chân đứng vững
+            if (part.rb != null) { part.rb.linearDamping = 10f; part.rb.angularDamping = 10f; }
         }
     }
 
@@ -242,11 +309,8 @@ public class Enemy : MonoBehaviour
     {
         foreach (var part in activeBodyParts)
         {
-            if (part.rb != null)
-            {
-                part.rb.linearDamping = 0f;
-                part.rb.angularDamping = 0.05f;
-            }
+            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm) continue;
+            if (part.rb != null) { part.rb.linearDamping = 0f; part.rb.angularDamping = 0.05f; }
         }
     }
 
@@ -260,11 +324,10 @@ public class Enemy : MonoBehaviour
         }
         foreach (var part in partsToRemove)
         {
-            // Nếu mất xương sống hoặc hông -> Tắt di chuyển và Tắt xoay luôn
             if (part.type == BodyPartType.Spine || part.type == BodyPartType.Pelvis)
             {
                 isMoving = false;
-                enableRotation = false; // [TỰ ĐỘNG TẮT XOAY KHI MẤT GỐC]
+                enableRotation = false;
             }
             activeBodyParts.Remove(part);
         }
@@ -282,7 +345,7 @@ public class Enemy : MonoBehaviour
         if (isDie) return;
         isDie = true;
         isMoving = false;
-        enableRotation = false; // [TỰ ĐỘNG TẮT XOAY KHI CHẾT]
+        enableRotation = false;
 
         if (level != null) level.RemoveEnemy(this);
         MakeBodyLimp();
@@ -305,11 +368,14 @@ public class Enemy : MonoBehaviour
         foreach (Rigidbody rb in rbs)
         {
             if (rb.GetComponent<Joint>()) Destroy(rb.GetComponent<Joint>());
-            rb.transform.SetParent(level != null ? level.transform : null, true);
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.interpolation = RigidbodyInterpolation.None;
-            Destroy(rb.gameObject, 5f);
+            if (rb.gameObject.GetComponent<Projectile>() == null)
+            {
+                rb.transform.SetParent(level != null ? level.transform : null, true);
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.interpolation = RigidbodyInterpolation.None;
+                Destroy(rb.gameObject, 5f);
+            }
         }
         foreach (Rigidbody rb in rbs) rb.AddExplosionForce(breakForce, transform.position, breakRadius);
         Destroy(gameObject, 0.1f);

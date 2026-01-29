@@ -1,10 +1,10 @@
 using System.Collections;
 using UnityEngine;
+using CandyCoded.HapticFeedback;
 
 public enum eGameState
 {
     None,
-    Home,
     Playing,
     GameWin,
     GameOver
@@ -13,6 +13,8 @@ public class GameController : Singleton<GameController>
 {
 
     public eGameState State => currentState;
+
+    public bool isStop;
     [SerializeField] private int currentLevel = 1;
 
     [SerializeField] private float timeLoadLevel;
@@ -24,21 +26,27 @@ public class GameController : Singleton<GameController>
     private CanvasGameplay canvasGameplay;
     private Level level;
 
+    private GameSetting gameSetting;
+
     private eGameState currentState;
+    void Awake()
+    {
+        gameSetting = Resources.Load<GameSetting>(GameConstants.KEY_DATA_GAME_SETTING);
+    }
     void Start()
     {
         canvasGameplay = UIManager.Instance.OpenUI<CanvasGameplay>();
+        canvasGameplay.SetGameSetting(gameSetting);
         StartCoroutine(Playing(true));
     }
     public void SetState(eGameState newState)
     {
         if (newState == currentState) return;
-
+        if (newState == eGameState.GameWin && currentState == eGameState.GameOver) return;
+        if (newState == eGameState.GameOver && currentState == eGameState.GameWin) return;
         currentState = newState;
         switch (currentState)
         {
-            case eGameState.Home:
-                break;
             case eGameState.GameWin:
                 GameComplete();
                 break;
@@ -50,6 +58,7 @@ public class GameController : Singleton<GameController>
     public void GameComplete()
     {
         currentLevel++;
+        WeaponManager.Instance.SetWeapon(currentLevel);
         canvasGameplay.ShowGameComplete();
         StartCoroutine(Playing(false));
         //Invoke(nameof(LoadLevel), timeLoadLevel);
@@ -57,6 +66,7 @@ public class GameController : Singleton<GameController>
 
     public void ReplayGame()
     {
+        canvasGameplay.ShowGameLose();
         StartCoroutine(Playing(false));
         //Invoke(nameof(LoadLevel), timeLoadLevel);
     }
@@ -64,18 +74,25 @@ public class GameController : Singleton<GameController>
     {
         if (!isStart)
         {
-            yield return new WaitForSeconds(timeLoadLevel / 2);
-            Observer.OnDespawnObject?.Invoke();
-            yield return new WaitForSeconds(timeLoadLevel / 2);
+
+            yield return new WaitForSeconds(timeLoadLevel);
         }
         else
         {
             yield return null;
         }
         canvasGameplay.UpdateLevel(currentLevel);
-        canvasGameplay.ResetUI();
+        if (currentState == eGameState.GameWin)
+        {
+            canvasGameplay.ResetUI();
+        }
+        else if (currentState == eGameState.GameOver)
+        {
+            canvasGameplay.ResetUILose();
+        }
         if (level != null)
         {
+            Observer.OnDespawnObject?.Invoke();
             level.ResetLevel();
             Destroy(level.gameObject);
             level = null;
@@ -105,5 +122,28 @@ public class GameController : Singleton<GameController>
         // 3. Trả về bình thường
         Time.timeScale = 1f;
         Time.fixedDeltaTime = 0.02f; // Trả lại mặc định của Unity
+    }
+
+    public void OnWardrobe(bool isOpen)
+    {
+        isStop = isOpen;
+    }
+
+    public void Vibrate()
+    {
+        if (gameSetting != null && !gameSetting.isVibrate)
+        {
+            return;
+        }
+        HapticFeedback.LightFeedback();
+    }
+    void OnEnable()
+    {
+        Observer.OnOpenWardrobe += OnWardrobe;
+    }
+
+    void OnDisable()
+    {
+        Observer.OnOpenWardrobe -= OnWardrobe;
     }
 }

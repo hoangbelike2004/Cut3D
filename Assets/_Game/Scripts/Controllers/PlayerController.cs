@@ -24,6 +24,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 endMousePos;
     private bool isDragging = false;
 
+    private PoolType weapontype;
     // Component
     private Camera mainCamera;
     private LineRenderer lineRenderer; // <--- MỚI: Biến LineRenderer
@@ -31,6 +32,7 @@ public class PlayerController : MonoBehaviour
     private Level _level;
     void Start()
     {
+        weapontype = WeaponManager.Instance.WeaponSellect.Type;
         mainCamera = Camera.main;
         _level = transform.root.GetComponent<Level>();
         _level.SetPlayer(this);
@@ -51,7 +53,7 @@ public class PlayerController : MonoBehaviour
 
     void HandleInput()
     {
-        if (GameController.Instance.State != eGameState.Playing)
+        if (GameController.Instance.State != eGameState.Playing || GameController.Instance.isStop)
             return;
         // 1. BẮT ĐẦU KÉO
         if (Input.GetMouseButtonDown(0))
@@ -136,7 +138,7 @@ public class PlayerController : MonoBehaviour
     {
         // --- BƯỚC 3: SPAWN VÀ NÉM ---
         // Đảm bảo bạn đã có SimplePool và PoolType trong project
-        Projectile axe = SimplePool.Spawn<Projectile>(PoolType.Weapon_Axe, transform.position, Quaternion.identity);
+        Projectile axe = SimplePool.Spawn<Projectile>(weapontype, transform.position, Quaternion.identity);
 
         if (axe != null)
         {
@@ -160,5 +162,22 @@ public class PlayerController : MonoBehaviour
         {
             if (GameController.Instance != null) GameController.Instance.SetState(eGameState.GameOver);
         }
+    }
+    public void ChangeWeaponType(WeaponData weaponData)
+    {
+        PoolType type = weaponData.Type;
+        if (type != weapontype)
+        {
+            weapontype = type;
+        }
+    }
+    void OnEnable()
+    {
+        Observer.OnSellectWeapon += ChangeWeaponType;
+    }
+
+    void OnDisable()
+    {
+        Observer.OnSellectWeapon -= ChangeWeaponType;
     }
 }

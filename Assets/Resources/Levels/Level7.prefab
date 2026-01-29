@@ -239,7 +239,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 0
   isBroken: 0
   isHead: 0
@@ -505,7 +505,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 0
   isBroken: 0
   isHead: 0
@@ -772,7 +772,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 100
   isBroken: 0
   isHead: 1
@@ -1039,7 +1039,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 0
   isBroken: 0
   isHead: 0
@@ -1460,7 +1460,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 0
   isBroken: 0
   isHead: 0
@@ -1568,6 +1568,9 @@ MonoBehaviour:
   attackRange: 10
   fireRate: 2
   recoilForce: 20
+  minMissShots: 2
+  maxMissShots: 5
+  inaccuracyAngle: 15
   isMoving: 0
   enableRotation: 1
   activeBodyParts:
@@ -1637,8 +1640,9 @@ MonoBehaviour:
   stopDistance: 1
   hipSwingAngle: 45
   kneeBendAngle: 40
-  armSwingAngle: 45
-  elbowBendAngle: 30
+  armFlailSpeed: 8
+  armFlailRange: 60
+  elbowShake: 45
   objectCamFolow: {fileID: 8191885415786950386}
   breakForce: 300
   breakRadius: 2
@@ -1881,7 +1885,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 0
   isBroken: 0
   isHead: 0
@@ -2197,7 +2201,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 0
   isBroken: 0
   isHead: 0
@@ -2463,7 +2467,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 0
   isBroken: 0
   isHead: 0
@@ -3119,7 +3123,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 0
   isBroken: 0
   isHead: 0
@@ -3391,7 +3395,7 @@ MonoBehaviour:
   internalMaterial: {fileID: 0}
   canBeCut: 1
   changeColor: 1
-  currentHitCountMax: 2
+  currentHitCountMax: 1
   damage: 50
   isBroken: 0
   isHead: 0
@@ -3469,7 +3473,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8067431892250154130}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -3487,7 +3491,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 4362962105363994262, guid: 7c966c6d21a934f0d97a431c336d14d7, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

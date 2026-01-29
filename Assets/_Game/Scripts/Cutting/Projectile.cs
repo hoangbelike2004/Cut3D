@@ -154,6 +154,7 @@ public class Projectile : GameUnit
             {
                 sliceables.Add(sliceable.GetParentOld);
                 sliceable.AddProjectiles(this);
+                GameController.Instance.Vibrate();
             }
             return;
         }
@@ -234,6 +235,7 @@ public class Projectile : GameUnit
 
     public void DespawnSelf()
     {
+        if (gameObject.activeSelf == false) return;
         isMoving = false;
         isStick = false;
         hasHit = false;
@@ -244,6 +246,7 @@ public class Projectile : GameUnit
         if (flightCoroutine != null) StopCoroutine(flightCoroutine);
 
         transform.SetParent(null);
+
         SimplePool.Despawn(this);
     }
 

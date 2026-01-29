@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0dc034b227184dc48ce0574084518a4, type: 3}
+  m_Name: WeaponSO
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponSO
+  weapons:
+  - Type: 2
+    stateWeapon: 2
+    icon: {fileID: 21300000, guid: 05148ebfa9ab54ae983fd829bbfbf4f7, type: 3}
+    goal: 1
+  - Type: 4
+    stateWeapon: 0
+    icon: {fileID: 723790518, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    goal: 3
+  - Type: 5
+    stateWeapon: 0
+    icon: {fileID: -1489964805, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    goal: 5
+  - Type: 6
+    stateWeapon: 0
+    icon: {fileID: 566190251, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    goal: 7
+  - Type: 7
+    stateWeapon: 0
+    icon: {fileID: 21300000, guid: 2b5527ce0f67e465dbaf351f8acd7a77, type: 3}
+    goal: 9
+  - Type: 8
+    stateWeapon: 0
+    icon: {fileID: 21300000, guid: 37e17f287a26b4e94a4a4844d6999de7, type: 3}
+    goal: 11
+  - Type: 9
+    stateWeapon: 0
+    icon: {fileID: -1821442522, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    goal: 13
