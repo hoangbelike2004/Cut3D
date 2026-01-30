@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[RequireComponent(typeof(LineRenderer))] // Tự động thêm LineRenderer nếu chưa có
+[RequireComponent(typeof(LineRenderer))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Cài đặt Game")]
@@ -8,7 +8,7 @@ public class PlayerController : MonoBehaviour
     public float maxDragDistance = 400f;
 
     [Tooltip("Khoảng cách kéo tối thiểu. Nếu ngắn hơn mức này sẽ không ném.")]
-    public float minDragDistance = 10f; // <--- MỚI: Ngưỡng kiểm tra
+    public float minDragDistance = 10f;
 
     [Tooltip("Chế độ ném thẳng hay cong")]
     public bool isStraight = false;
@@ -17,8 +17,9 @@ public class PlayerController : MonoBehaviour
     private float maxScale = 1.25f;
 
     [Header("Cài đặt Hiển thị (Line)")]
-    public float distanceFromCamera = 5f; // Khoảng cách vẽ Line trước Camera
+    public float distanceFromCamera = 5f;
     public float lineWidth = 0.025f;
+
     // Biến lưu trạng thái chuột
     private Vector2 startMousePos;
     private Vector2 endMousePos;
@@ -27,23 +28,23 @@ public class PlayerController : MonoBehaviour
     private PoolType weapontype;
     // Component
     private Camera mainCamera;
-    private LineRenderer lineRenderer; // <--- MỚI: Biến LineRenderer
+    private LineRenderer lineRenderer;
 
     private Level _level;
+
     void Start()
     {
         weapontype = WeaponManager.Instance.WeaponSellect.Type;
         mainCamera = Camera.main;
         _level = transform.root.GetComponent<Level>();
         _level.SetPlayer(this);
+
         // Setup LineRenderer
         lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = 2; // Chỉ cần điểm đầu và cuối
+        lineRenderer.positionCount = 2;
         lineRenderer.startWidth = lineWidth;
         lineRenderer.endWidth = lineWidth;
-        lineRenderer.enabled = false; // Mặc định tắt
-
-        // Bạn nên gán một Material đơn giản (Unlit/Color) cho LineRenderer trong Inspector để nó hiện rõ màu
+        lineRenderer.enabled = false;
     }
 
     void Update()
@@ -55,18 +56,18 @@ public class PlayerController : MonoBehaviour
     {
         if (GameController.Instance.State != eGameState.Playing || GameController.Instance.isStop)
             return;
+
         // 1. BẮT ĐẦU KÉO
         if (Input.GetMouseButtonDown(0))
         {
             startMousePos = Input.mousePosition;
             isDragging = true;
 
-            // Bật LineRenderer
             lineRenderer.enabled = true;
-            UpdateLineVisual(startMousePos, startMousePos); // Ban đầu là 1 điểm
+            UpdateLineVisual(startMousePos, startMousePos);
         }
 
-        // 2. ĐANG KÉO (Cập nhật Line liên tục)
+        // 2. ĐANG KÉO
         if (Input.GetMouseButton(0) && isDragging)
         {
             Vector2 currentMousePos = Input.mousePosition;
@@ -78,29 +79,21 @@ public class PlayerController : MonoBehaviour
         {
             endMousePos = Input.mousePosition;
             isDragging = false;
-
-            // Tắt LineRenderer ngay khi thả tay
             lineRenderer.enabled = false;
 
-            // --- KIỂM TRA ĐIỀU KIỆN ---
+            // Kiểm tra lực kéo tối thiểu
             float dragDistance = Vector2.Distance(startMousePos, endMousePos);
-
-            // Nếu kéo quá ngắn (gần nhau quá) -> Hủy bỏ, không ném
             if (dragDistance < minDragDistance)
             {
-                Debug.Log("Lực kéo quá yếu (quá gần), hủy ném!");
                 return;
             }
 
-            ProcessThrowLogic(dragDistance); // Truyền khoảng cách đã tính vào luôn cho tối ưu
+            ProcessThrowLogic(dragDistance);
         }
     }
 
-    // --- HÀM MỚI: CẬP NHẬT VẼ LINE ---
     void UpdateLineVisual(Vector2 startScreenPos, Vector2 endScreenPos)
     {
-        // Chuyển đổi từ tọa độ màn hình (Screen) sang thế giới (World)
-        // Cần thêm trục Z (distanceFromCamera) để nó hiện ra trước Camera
         Vector3 startWorld = mainCamera.ScreenToWorldPoint(new Vector3(startScreenPos.x, startScreenPos.y, distanceFromCamera));
         Vector3 endWorld = mainCamera.ScreenToWorldPoint(new Vector3(endScreenPos.x, endScreenPos.y, distanceFromCamera));
 
@@ -108,54 +101,56 @@ public class PlayerController : MonoBehaviour
         lineRenderer.SetPosition(1, endWorld);
     }
 
+    // --- ĐÂY LÀ HÀM ĐÃ ĐƯỢC CHỈNH SỬA ---
     void ProcessThrowLogic(float dragDistance)
     {
-        // --- BƯỚC 1: TÍNH TOÁN TỈ LỆ (SCALE) ---
-        // (Đã tính dragDistance ở trên rồi nên dùng luôn)
-
-        // Tính tỉ lệ lực dựa trên độ dài kéo (Clamp từ 0.1 đến 1.0)
+        // 1. TÍNH SCALE
         float powerRatio = Mathf.Clamp(dragDistance / maxDragDistance, 0.1f, 1f);
-
-        // Tính Scale thực tế dựa trên tỉ lệ này
         float finalScale = Mathf.Lerp(minScale, maxScale, powerRatio);
-        // --- BƯỚC 2: TÌM MỤC TIÊU (RAYCAST TỪ ĐIỂM GIỮA) ---
+
+        // 2. TÌM MỤC TIÊU
         Vector2 screenMidPoint = (startMousePos + endMousePos) / 2;
         Ray ray = mainCamera.ScreenPointToRay(screenMidPoint);
         RaycastHit hit;
 
+        Vector3 targetPos; // Biến lưu vị trí đích cuối cùng
+
+        // Thử Raycast xem có trúng vật thể nào không (ví dụ mặt đất, kẻ địch, tường)
         if (Physics.Raycast(ray, out hit, 1000f))
         {
-            // Trúng bất cứ cái gì có Collider là némf
-            ThrowWeapon(hit.point, finalScale, powerRatio);
+            // NẾU TRÚNG: Lấy điểm va chạm
+            targetPos = hit.point;
         }
         else
         {
-            Debug.Log("Không trúng gì cả (bắn lên trời?)");
+            // NẾU KHÔNG TRÚNG (Bắn lên trời/ra ngoài map):
+            // Lấy một điểm nằm trên tia Ray, cách Camera 1000 đơn vị về phía trước
+            targetPos = ray.GetPoint(1000f);
         }
+
+        // 3. THỰC HIỆN NÉM (Dù trúng hay trượt đều ném)
+        ThrowWeapon(targetPos, finalScale, powerRatio);
     }
 
     void ThrowWeapon(Vector3 targetPosition, float scale, float powerRatio)
     {
-        // --- BƯỚC 3: SPAWN VÀ NÉM ---
-        // Đảm bảo bạn đã có SimplePool và PoolType trong project
         Projectile axe = SimplePool.Spawn<Projectile>(weapontype, transform.position, Quaternion.identity);
 
         if (axe != null)
         {
             axe.transform.localScale = Vector3.one * scale;
-            // 1. Tính Vector hướng
+
+            // Tính hướng ném (hướng của đường kẻ trên màn hình)
             Vector2 direction = startMousePos - endMousePos;
 
-            // 2. Tính góc
+            // Tính góc xoay cho vũ khí (để nó quay đúng hướng bay)
             float angle = Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg;
-
-            // 3. Đảo dấu
             float finalAngle = -angle;
 
-            // Gọi hàm
             axe.InitializeArcThrow(targetPosition, powerRatio, finalAngle, isStraight);
         }
     }
+
     void OnCollisionEnter(Collision other)
     {
         if (other.collider.CompareTag("Enemy") || other.collider.CompareTag("Bullet"))
@@ -163,6 +158,7 @@ public class PlayerController : MonoBehaviour
             if (GameController.Instance != null) GameController.Instance.SetState(eGameState.GameOver);
         }
     }
+
     public void ChangeWeaponType(WeaponData weaponData)
     {
         PoolType type = weaponData.Type;
@@ -171,6 +167,7 @@ public class PlayerController : MonoBehaviour
             weapontype = type;
         }
     }
+
     void OnEnable()
     {
         Observer.OnSellectWeapon += ChangeWeaponType;

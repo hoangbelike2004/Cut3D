@@ -27,7 +27,7 @@ MonoBehaviour:
     goal: 5
   - Type: 6
     stateWeapon: 0
-    icon: {fileID: 566190251, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    icon: {fileID: -775111129, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
     goal: 7
   - Type: 7
     stateWeapon: 0

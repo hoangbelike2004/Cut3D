@@ -5,7 +5,7 @@ using System.Linq;
 public class Enemy : MonoBehaviour
 {
     public enum EnemyType { Melee, Ranged }
-    public enum BodyPartType { None, Pelvis, Spine, Head, UpperArm, LowerArm, UpperLeg, LowerLeg, Foot }
+    public enum BodyPartType { None, Pelvis, Spine, Head, UpperArm, LowerArm, UpperLeg, LowerLeg, Foot, LeftEye, RightEye }
 
     [System.Serializable]
     public class BodyPart
@@ -42,19 +42,26 @@ public class Enemy : MonoBehaviour
     public List<BodyPart> activeBodyParts = new List<BodyPart>();
 
     [Header("Thông số Animation & Di Chuyển")]
-    public float walkSpeed = 10f;
+    public float walkSpeed = 3f;
     public float maxSpeed = 5f;
-    public float moveForce = 100f;
+    public float moveForce = 5f;
     public float stopDistance = 1.0f;
 
     // Animation settings
     public float hipSwingAngle = 45f;
     public float kneeBendAngle = 40f;
 
-    [Header("Cài Đặt Khua Tay (Chaos Arm)")]
+    [Header("Cài Đặt Khua Tay")]
     public float armFlailSpeed = 8f;
     public float armFlailRange = 60f;
     public float elbowShake = 45f;
+
+    // --- [MỚI] BIẾN ĐỂ CHỈNH MẮT ---
+    [Header("Cài Đặt Mắt Hài Hước (Derpy Eyes)")]
+    [Tooltip("Tốc độ đảo mắt (Càng nhỏ càng chậm)")]
+    public float eyeSpeed = 1.5f;
+    [Tooltip("Góc quay tối đa (Càng lớn mắt đảo càng rộng)")]
+    public float eyeAngleLimit = 70f;
 
     private Rigidbody mainBody;
     private Transform target;
@@ -81,7 +88,6 @@ public class Enemy : MonoBehaviour
         if (enemyType == EnemyType.Ranged)
         {
             ResetMissCounter();
-            // Đặt thời gian chờ ngay từ đầu để tránh sinh ra là bắn luôn
             nextFireTime = Time.time + fireRate;
         }
     }
@@ -92,13 +98,18 @@ public class Enemy : MonoBehaviour
         {
             if (part.obj != null)
             {
+                // Mắt không cần Rigidbody/Joint
+                if (part.type != BodyPartType.LeftEye && part.type != BodyPartType.RightEye)
+                {
+                    part.rb = part.obj.GetComponent<Rigidbody>();
+                    part.joint = part.obj.GetComponent<ConfigurableJoint>();
+                }
+
                 if (part.type == BodyPartType.Pelvis)
                 {
                     hip = part.obj.transform;
                     mainBody = part.obj.GetComponent<Rigidbody>();
                 }
-                part.rb = part.obj.GetComponent<Rigidbody>();
-                part.joint = part.obj.GetComponent<ConfigurableJoint>();
             }
         }
     }
@@ -116,15 +127,13 @@ public class Enemy : MonoBehaviour
         float distance = Vector3.Distance(new Vector3(hip.position.x, 0, hip.position.z),
                                           new Vector3(target.position.x, 0, target.position.z));
 
-        // --- 1. XOAY NGƯỜI (Vẫn giữ để nó hướng súng về player) ---
+        // --- 1. XOAY NGƯỜI ---
         if (enableRotation)
         {
             Vector3 dir = (target.position - hip.position).normalized;
             dir.y = 0;
             bool hasCore = activeBodyParts.Any(p => p.type == BodyPartType.Pelvis || p.type == BodyPartType.Spine);
 
-            // Chỉ xoay khi mục tiêu ở trong tầm tấn công hoặc gần đó (để không xoay lung tung khi player quá xa)
-            // Hoặc bỏ điều kiện distance nếu muốn nó luôn nhìn theo
             if (dir != Vector3.zero && mainBody != null && hasCore && distance < attackRange * 1.5f)
             {
                 Quaternion lookRot = Quaternion.LookRotation(dir);
@@ -135,44 +144,29 @@ public class Enemy : MonoBehaviour
         // --- 2. XỬ LÝ LOGIC ---
         if (enemyType == EnemyType.Melee)
         {
-            // Logic Melee cũ (Giữ nguyên)
             if (distance < stopDistance)
             {
                 isMoving = false;
                 ResetLegsOnly();
             }
         }
-        else // --- [LOGIC RANGED - ĐỨNG YÊN] ---
+        else
         {
-            // Ranged luôn luôn KHÔNG di chuyển chân
             if (distance < stopDistance)
             {
                 isMoving = false;
-                ResetLegsOnly(); // Đứng lại để ổn định khi đã áp sát
+                ResetLegsOnly();
             }
             else
             {
-                isMoving = true; // Kích hoạt animation chạy
+                isMoving = true;
             }
-            if (distance < attackRange)
-            {
-                // Người chơi ĐÃ VÀO TẦM NGẮM
-                // Ta không can thiệp nextFireTime nữa -> Để nó tự trôi đi
-                // Sau đúng khoảng fireRate giây, nó sẽ bắn
-                ShootBehavior();
-            }
-            else
-            {
-                // Người chơi Ở XA
-                // Liên tục đẩy lùi thời gian bắn về tương lai
-                // Ý nghĩa: "Mục tiêu chưa vào tầm, tao chưa nạp đạn xong"
-                nextFireTime = Time.time + fireRate;
-            }
+
+            if (distance < attackRange) ShootBehavior();
+            else nextFireTime = Time.time + fireRate;
         }
 
-        // --- 3. ANIMATION VÀ LỰC DI CHUYỂN ---
-
-        // Chuẩn bị Drag (Chỉ áp dụng khi isMoving = true, mà Ranged thì isMoving = false nên nó sẽ dùng Drag lớn của ResetLegsOnly)
+        // --- 3. ANIMATION ---
         if (isMoving) ResetDragForMovement();
 
         Vector3 moveDir = (target.position - hip.position).normalized;
@@ -184,13 +178,21 @@ public class Enemy : MonoBehaviour
 
         foreach (var part in activeBodyParts)
         {
-            if (part == null || part.obj == null || !part.obj.activeInHierarchy || part.joint == null) continue;
+            if (part == null || part.obj == null || !part.obj.activeInHierarchy) continue;
+
+            // Xử lý riêng cho Mắt (Dùng Transform Rotation)
+            if (part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye)
+            {
+                HandleEyeRotation(part);
+                continue;
+            }
+
+            if (part.joint == null) continue;
 
             float phase = part.invertPhase ? -1f : 1f;
 
             switch (part.type)
             {
-                // --- CHÂN: Sẽ KHÔNG chạy vì Ranged có isMoving = false ---
                 case BodyPartType.UpperLeg:
                     if (isMoving)
                     {
@@ -221,12 +223,10 @@ public class Enemy : MonoBehaviour
                     if (isMoving) part.joint.targetRotation = Quaternion.Euler(cycle * 10f * phase, 0, 0);
                     break;
 
-                // --- TAY: VẪN KHUA LOẠN XẠ (Vì nằm ngoài if isMoving) ---
                 case BodyPartType.UpperArm:
                     float noiseX = (Mathf.PerlinNoise(Time.time * armFlailSpeed * 0.5f, randomSeed + phase) - 0.5f) * 2f;
                     float noiseY = (Mathf.PerlinNoise(Time.time * armFlailSpeed, randomSeed + phase + 100) - 0.5f) * 2f;
                     float noiseZ = (Mathf.PerlinNoise(Time.time * armFlailSpeed * 0.8f, randomSeed + phase + 200) - 0.5f) * 2f;
-
                     Quaternion chaosRot = Quaternion.Euler(noiseX * armFlailRange, noiseY * armFlailRange / 2, noiseZ * armFlailRange / 2 + (phase * 20));
                     part.joint.targetRotation = chaosRot;
                     if (part.rb != null) { part.rb.linearDamping = 0f; part.rb.angularDamping = 0.05f; }
@@ -245,6 +245,39 @@ public class Enemy : MonoBehaviour
                     break;
             }
         }
+    }
+
+    // --- [CHỈNH SỬA] LOGIC MẮT CHẬM VÀ XOAY RỘNG ---
+    void HandleEyeRotation(BodyPart part)
+    {
+        // Hệ số ngẫu nhiên để 2 mắt không quay đồng bộ
+        float seedOffset = (part.type == BodyPartType.LeftEye) ? 0f : 500f;
+
+        // 1. Tạo chuyển động xoay trục X và Y (Nhìn ngang dọc)
+        // Dùng Perlin Noise nhưng tần số thấp (eyeSpeed) để mượt mà, lờ đờ
+        float noiseX = (Mathf.PerlinNoise(Time.time * eyeSpeed, randomSeed + seedOffset) - 0.5f) * 2f; // Phạm vi -1 đến 1
+        float noiseY = (Mathf.PerlinNoise(Time.time * eyeSpeed, randomSeed + seedOffset + 100) - 0.5f) * 2f;
+
+        // Nhân với eyeAngleLimit (Ví dụ 70 độ) để mắt liếc thật rộng
+        float lookX = noiseX * eyeAngleLimit;
+        float lookY = noiseY * eyeAngleLimit;
+
+        // 2. Tạo chuyển động xoay trục Z (Roll - xoay vòng tròn)
+        float rollZ = 0;
+        if (part.type == BodyPartType.RightEye)
+        {
+            // Mắt phải: Cho phép xoay vòng tròn chậm rãi (Slot machine)
+            // Time.time * 20f: Tốc độ xoay vòng
+            rollZ = (Mathf.Sin(Time.time * 0.5f) * 40f) + (Time.time * 20f);
+        }
+        else
+        {
+            // Mắt trái: Chỉ lắc lư nhẹ trục Z cho đỡ cứng
+            rollZ = Mathf.Sin(Time.time * 2f) * 10f;
+        }
+
+        // 3. Áp dụng xoay
+        part.obj.transform.localRotation = Quaternion.Euler(lookX, lookY, rollZ);
     }
 
     void ShootBehavior()
@@ -297,10 +330,10 @@ public class Enemy : MonoBehaviour
     {
         foreach (var part in activeBodyParts)
         {
-            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm) continue;
-            if (part.joint != null) part.joint.targetRotation = Quaternion.identity;
+            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm ||
+                part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye) continue;
 
-            // Tăng damping lên cao để chân đứng vững
+            if (part.joint != null) part.joint.targetRotation = Quaternion.identity;
             if (part.rb != null) { part.rb.linearDamping = 10f; part.rb.angularDamping = 10f; }
         }
     }
@@ -309,7 +342,9 @@ public class Enemy : MonoBehaviour
     {
         foreach (var part in activeBodyParts)
         {
-            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm) continue;
+            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm ||
+                part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye) continue;
+
             if (part.rb != null) { part.rb.linearDamping = 0f; part.rb.angularDamping = 0.05f; }
         }
     }
@@ -379,6 +414,14 @@ public class Enemy : MonoBehaviour
         }
         foreach (Rigidbody rb in rbs) rb.AddExplosionForce(breakForce, transform.position, breakRadius);
         Destroy(gameObject, 0.1f);
+    }
+    // Thêm vào trong class Enemy
+    public GameObject GetHipObject()
+    {
+        // Tìm trong list activeBodyParts xem cái nào là Pelvis (Hông)
+        if (isDie) return null;
+        var hipPart = activeBodyParts.FirstOrDefault(p => p.type == BodyPartType.Pelvis);
+        return hipPart != null ? hipPart.obj : null;
     }
 
     public void SetTarget(Transform target) => this.target = target;

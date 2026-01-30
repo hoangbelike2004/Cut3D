@@ -72,9 +72,6 @@ public class ObjectSliceable : MonoBehaviour
                     // 2. Set nó làm con của Sliceable này
                     container.transform.SetParent(transform);
 
-                    // 3. Reset toạ độ và xoay
-                    container.transform.localPosition = Vector3.zero;
-                    container.transform.localRotation = Quaternion.identity;
                     // ---------------------------------
 
                     stuckProjectilesContainer = container.transform;

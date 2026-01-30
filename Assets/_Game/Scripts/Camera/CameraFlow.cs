@@ -40,19 +40,27 @@ public class CameraFlow : MonoBehaviour
         Transform nearest = null;
         float minDistanceSqr = Mathf.Infinity;
 
+        // Duyệt ngược là đúng rồi (để xóa phần tử null an toàn)
         for (int i = tfsFlow.Count - 1; i >= 0; i--)
         {
+            if (!tfsFlow[i].gameObject.activeInHierarchy) continue;
             Transform tf = tfsFlow[i];
 
+            // Kiểm tra null
             if (tf == null)
             {
                 tfsFlow.RemoveAt(i);
                 continue;
             }
-
+            // --- SỬA Ở ĐÂY ---
+            // Lấy vector từ nguồn đến đích (bao gồm cả X, Y, Z)
             Vector3 directionToTarget = tf.position - sourcePosition;
-            directionToTarget.z = 0; // Tính khoảng cách trên mặt phẳng 2D
 
+            // KHÔNG ĐƯỢC set z = 0 hay y = 0 nếu muốn tính full 3D.
+            // directionToTarget.z = 0; <--- Xóa dòng này đi
+
+            // Tính bình phương độ dài vector (X^2 + Y^2 + Z^2)
+            // Dùng sqrMagnitude nhanh hơn Vector3.Distance vì không cần căn bậc 2
             float dSqrToTarget = directionToTarget.sqrMagnitude;
 
             if (dSqrToTarget < minDistanceSqr)
@@ -61,6 +69,8 @@ public class CameraFlow : MonoBehaviour
                 nearest = tf;
             }
         }
+
+        // Debug.Log(nearest); // Comment lại khi build để đỡ lag log
         return nearest;
     }
 

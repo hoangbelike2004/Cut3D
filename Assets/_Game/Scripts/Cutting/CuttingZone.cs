@@ -20,22 +20,40 @@ public class CuttingZone : MonoBehaviour
         midPointSlicer.transform.SetParent(transform);
     }
 
-    void OnCollisionEnter(Collision collision)
+void OnCollisionEnter(Collision collision)
+{
+    // 1. Cố gắng tìm script Enemy từ vật thể bị va chạm
+    // GetComponentInParent sẽ tìm từ vật thể đó ngược lên các cha của nó
+    Enemy enemy = collision.collider.GetComponentInParent<Enemy>();
+
+    if (enemy != null)
     {
-        // 1. Kiểm tra Sliceable
-        Sliceable sliceable = collision.collider.GetComponent<Sliceable>();
+        // 2. Nếu trúng kẻ địch, xin nó cái Hông (Pelvis)
+        GameObject hipObj = enemy.GetHipObject();
 
-        if (sliceable == null)
+        if (hipObj != null)
         {
-            sliceable = collision.collider.GetComponentInParent<Sliceable>();
-        }
+            // 3. Lấy component Sliceable từ cái Hông đó
+            Sliceable bodySliceable = hipObj.GetComponent<Sliceable>();
 
-        // Kiểm tra điều kiện: Cắt được VÀ Phải là phần Hông (isHip)
-        if (sliceable != null && sliceable.canBeCut && sliceable.isHip)
-        {
-            PerformZoneCut(sliceable);
+            // 4. Kiểm tra và thực hiện cắt vào phần thân
+            if (bodySliceable != null && bodySliceable.canBeCut) 
+            {
+                // Dù va chạm vào tay/chân, ta vẫn truyền cái Hông vào để xử lý
+                PerformZoneCut(bodySliceable);
+            }
         }
     }
+    else
+    {
+        // (Tùy chọn) Xử lý logic cũ nếu bắn trúng đồ vật không phải Enemy
+        Sliceable objSliceable = collision.collider.GetComponent<Sliceable>();
+        if (objSliceable != null && objSliceable.canBeCut)
+        {
+             PerformZoneCut(objSliceable);
+        }
+    }
+}
 
     private void PerformZoneCut(Sliceable target)
     {

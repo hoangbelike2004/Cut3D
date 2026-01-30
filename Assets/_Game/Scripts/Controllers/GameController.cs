@@ -14,6 +14,8 @@ public class GameController : Singleton<GameController>
 
     public eGameState State => currentState;
 
+    public int CurrentLevel => currentLevel;
+
     public bool isStop;
     [SerializeField] private int currentLevel = 1;
 

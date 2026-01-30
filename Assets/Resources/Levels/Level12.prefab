@@ -283,8 +283,8 @@ Transform:
   m_GameObject: {fileID: 5284004826530943865}
   serializedVersion: 2
   m_LocalRotation: {x: 0.8163896, y: -0, z: -0, w: 0.57750154}
-  m_LocalPosition: {x: 0, y: 11.27, z: 0}
-  m_LocalScale: {x: 30, y: 1, z: 30}
+  m_LocalPosition: {x: 0, y: 11.27, z: 35.6}
+  m_LocalScale: {x: 100, y: 1, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8532542897555968102}
@@ -420,7 +420,7 @@ Transform:
   m_GameObject: {fileID: 5333435347727348714}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.58953, y: 0, z: -16.49243}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -443,6 +443,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Level
   enemies: []
+  interacable: []
 --- !u!1 &8982009445810998644
 GameObject:
   m_ObjectHideFlags: 0
