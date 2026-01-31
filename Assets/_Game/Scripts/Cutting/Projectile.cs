@@ -218,6 +218,7 @@ public class Projectile : GameUnit
 
     public void StickProjectile(Transform parent)
     {
+        SoundManager.Instance.PlaySound(eAudioName.Audio_Stick);
         hasHit = true;
         isMoving = false;
 

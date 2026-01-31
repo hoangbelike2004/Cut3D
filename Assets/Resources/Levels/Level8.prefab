@@ -1692,7 +1692,6 @@ GameObject:
   - component: {fileID: 8449430336968272912}
   - component: {fileID: 2833395349026601424}
   - component: {fileID: 3467192823776697407}
-  - component: {fileID: 7127697241459943572}
   m_Layer: 7
   m_Name: Cube (3)
   m_TagString: Wall
@@ -1820,20 +1819,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 1
---- !u!114 &7127697241459943572
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3085430965315385390}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60f5f498cebf4ccf92813d13e7dfe1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CuttingZone
-  killInstant: 1
-  cutPlaneDefinition: {fileID: 0}
 --- !u!1 &5687569366105624705
 GameObject:
   m_ObjectHideFlags: 0

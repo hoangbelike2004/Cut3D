@@ -20,6 +20,7 @@ public class Cutting : MonoBehaviour
 
     public void PerformSlice(List<Transform> activePlanes, Transform objectCut)
     {
+        SoundManager.Instance.PlaySound(eAudioName.Audio_Cut);
         if (activePlanes == null || activePlanes.Count == 0 || objectCut == null) return;
 
         Sliceable sliceData = objectCut.GetComponent<Sliceable>();

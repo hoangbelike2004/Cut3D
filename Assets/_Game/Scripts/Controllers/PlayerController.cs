@@ -138,6 +138,7 @@ public class PlayerController : MonoBehaviour
 
         if (axe != null)
         {
+            SoundManager.Instance.PlaySound(eAudioName.Audio_Throw);
             axe.transform.localScale = Vector3.one * scale;
 
             // Tính hướng ném (hướng của đường kẻ trên màn hình)

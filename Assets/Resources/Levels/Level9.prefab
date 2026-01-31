@@ -546,7 +546,6 @@ GameObject:
   - component: {fileID: 2585589433083499093}
   - component: {fileID: 1493291879181179401}
   - component: {fileID: 5260815399903029364}
-  - component: {fileID: 7607699827286615046}
   m_Layer: 7
   m_Name: Cube (4)
   m_TagString: Wall
@@ -674,20 +673,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 1
---- !u!114 &7607699827286615046
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 867229263278063927}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60f5f498cebf4ccf92813d13e7dfe1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CuttingZone
-  killInstant: 1
-  cutPlaneDefinition: {fileID: 0}
 --- !u!1 &1291744850818846350
 GameObject:
   m_ObjectHideFlags: 0
@@ -967,7 +952,6 @@ GameObject:
   - component: {fileID: 1778110569778475043}
   - component: {fileID: 7357368586987416667}
   - component: {fileID: 5020626146250078751}
-  - component: {fileID: 2275372723154823858}
   m_Layer: 7
   m_Name: Cube (3)
   m_TagString: Wall
@@ -1095,20 +1079,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 1
---- !u!114 &2275372723154823858
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2155221809866602652}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60f5f498cebf4ccf92813d13e7dfe1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CuttingZone
-  killInstant: 1
-  cutPlaneDefinition: {fileID: 0}
 --- !u!1 &3657336256853203679
 GameObject:
   m_ObjectHideFlags: 0
@@ -1689,7 +1659,6 @@ GameObject:
   - component: {fileID: 7020132665832592126}
   - component: {fileID: 2753055567707491198}
   - component: {fileID: 6728283522727712192}
-  - component: {fileID: 5220633989223747256}
   m_Layer: 7
   m_Name: Cube (7)
   m_TagString: Wall
@@ -1817,20 +1786,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 1
---- !u!114 &5220633989223747256
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4365217438906946770}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60f5f498cebf4ccf92813d13e7dfe1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CuttingZone
-  killInstant: 1
-  cutPlaneDefinition: {fileID: 0}
 --- !u!1 &4850179911168181727
 GameObject:
   m_ObjectHideFlags: 0
@@ -2643,7 +2598,6 @@ GameObject:
   - component: {fileID: 1091965537642224958}
   - component: {fileID: 7141344753416961684}
   - component: {fileID: 1975531670360711344}
-  - component: {fileID: 1108520732621039714}
   m_Layer: 7
   m_Name: Cube
   m_TagString: Wall
@@ -2771,20 +2725,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 1
---- !u!114 &1108520732621039714
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5155436631671949873}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60f5f498cebf4ccf92813d13e7dfe1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CuttingZone
-  killInstant: 1
-  cutPlaneDefinition: {fileID: 0}
 --- !u!1 &5165114851982921140
 GameObject:
   m_ObjectHideFlags: 0
@@ -3490,7 +3430,6 @@ GameObject:
   - component: {fileID: 8316572210522402739}
   - component: {fileID: 1804334661751366530}
   - component: {fileID: 713161297178059219}
-  - component: {fileID: 1359382235284676186}
   m_Layer: 7
   m_Name: Cube (5)
   m_TagString: Wall
@@ -3618,20 +3557,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 1
---- !u!114 &1359382235284676186
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6611170080143738722}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60f5f498cebf4ccf92813d13e7dfe1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CuttingZone
-  killInstant: 1
-  cutPlaneDefinition: {fileID: 0}
 --- !u!1 &6786094910675313101
 GameObject:
   m_ObjectHideFlags: 0
@@ -3645,7 +3570,6 @@ GameObject:
   - component: {fileID: 2030463525173865253}
   - component: {fileID: 2861300936397937007}
   - component: {fileID: 4908909569664405915}
-  - component: {fileID: 3635901783061577960}
   m_Layer: 7
   m_Name: Cube (8)
   m_TagString: Wall
@@ -3773,20 +3697,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 1
---- !u!114 &3635901783061577960
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6786094910675313101}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d60f5f498cebf4ccf92813d13e7dfe1b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CuttingZone
-  killInstant: 1
-  cutPlaneDefinition: {fileID: 0}
 --- !u!1 &7051897473786414054
 GameObject:
   m_ObjectHideFlags: 0

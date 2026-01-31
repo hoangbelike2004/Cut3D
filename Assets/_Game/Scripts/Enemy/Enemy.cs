@@ -25,8 +25,6 @@ public class Enemy : MonoBehaviour
     public float attackRange = 10f;
     public float fireRate = 2f;
     public float recoilForce = 20f;
-
-    [Header("Cài Đặt Độ Chính Xác (Ranged Only)")]
     public int minMissShots = 2;
     public int maxMissShots = 5;
     public float inaccuracyAngle = 15f;
@@ -36,18 +34,22 @@ public class Enemy : MonoBehaviour
 
     [Header("Trạng thái")]
     public bool isMoving = true;
+    public bool isMoveWhenAttacked = true;
     public bool enableRotation = true;
 
     [Header("DANH SÁCH BỘ PHẬN")]
     public List<BodyPart> activeBodyParts = new List<BodyPart>();
 
     [Header("Thông số Animation & Di Chuyển")]
+    [Tooltip("Bật = Di chuyển bằng Velocity (Chắc chắn). Tắt = Di chuyển bằng Force (Quán tính)")]
+    public bool useVelocityMovement; // <--- BIẾN BẠN CẦN Ở ĐÂY
+
     public float walkSpeed = 3f;
-    public float maxSpeed = 5f;
-    public float moveForce = 5f;
+    public float maxSpeed = 5f; // Tốc độ tối đa (Dùng cho cả 2 kiểu)
+    public float moveForce = 50f; // Lực đẩy (Dùng khi useVelocityMovement = false)
     public float stopDistance = 1.0f;
 
-    // Animation settings
+    [Header("Animation Settings")]
     public float hipSwingAngle = 45f;
     public float kneeBendAngle = 40f;
 
@@ -56,11 +58,8 @@ public class Enemy : MonoBehaviour
     public float armFlailRange = 60f;
     public float elbowShake = 45f;
 
-    // --- [MỚI] BIẾN ĐỂ CHỈNH MẮT ---
-    [Header("Cài Đặt Mắt Hài Hước (Derpy Eyes)")]
-    [Tooltip("Tốc độ đảo mắt (Càng nhỏ càng chậm)")]
+    [Header("Cài Đặt Mắt Hài Hước")]
     public float eyeSpeed = 1.5f;
-    [Tooltip("Góc quay tối đa (Càng lớn mắt đảo càng rộng)")]
     public float eyeAngleLimit = 70f;
 
     private Rigidbody mainBody;
@@ -82,6 +81,7 @@ public class Enemy : MonoBehaviour
             level = transform.root.GetComponent<Level>();
             level.AddEnemy(this);
         }
+
         AutoSetupBodyParts();
         randomSeed = Random.Range(0f, 100f);
 
@@ -98,7 +98,6 @@ public class Enemy : MonoBehaviour
         {
             if (part.obj != null)
             {
-                // Mắt không cần Rigidbody/Joint
                 if (part.type != BodyPartType.LeftEye && part.type != BodyPartType.RightEye)
                 {
                     part.rb = part.obj.GetComponent<Rigidbody>();
@@ -150,37 +149,33 @@ public class Enemy : MonoBehaviour
                 ResetLegsOnly();
             }
         }
-        else
+        else // Ranged
         {
             if (distance < stopDistance)
             {
                 isMoving = false;
                 ResetLegsOnly();
             }
-            else
-            {
-                isMoving = true;
-            }
 
             if (distance < attackRange) ShootBehavior();
             else nextFireTime = Time.time + fireRate;
         }
 
-        // --- 3. ANIMATION ---
-        if (isMoving) ResetDragForMovement();
+        // --- 3. ANIMATION & MOVEMENT ---
+        // Nếu dùng Velocity thì không cần Reset Drag vì ta set vận tốc trực tiếp
+        if (isMoving && !useVelocityMovement) ResetDragForMovement();
 
         Vector3 moveDir = (target.position - hip.position).normalized;
         moveDir.y = 0;
 
         float cycle = Mathf.Sin(Time.time * walkSpeed);
-        bool hasUpperLeg = activeBodyParts.Any(p => p.type == BodyPartType.UpperLeg);
         bool currentSpeedIsHigh = mainBody != null && mainBody.linearVelocity.magnitude > maxSpeed;
 
         foreach (var part in activeBodyParts)
         {
             if (part == null || part.obj == null || !part.obj.activeInHierarchy) continue;
 
-            // Xử lý riêng cho Mắt (Dùng Transform Rotation)
+            // Xử lý Mắt
             if (part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye)
             {
                 HandleEyeRotation(part);
@@ -197,14 +192,16 @@ public class Enemy : MonoBehaviour
                     if (isMoving)
                     {
                         part.joint.targetRotation = Quaternion.Euler(cycle * hipSwingAngle * phase, 0, 0);
-                        if (part.rb != null && !currentSpeedIsHigh)
-                            part.rb.AddForce(moveDir * moveForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
+                        // UpperLeg chỉ Animation, không tham gia đẩy lực để tránh xung đột
                     }
                     break;
 
-                case BodyPartType.LowerLeg:
+                // --- [ĐÂY LÀ PHẦN QUAN TRỌNG NHẤT] ---
+                case BodyPartType.LowerLeg: // Bắp chân
                     if (isMoving)
                     {
+                        // A. Animation Gập Gối (Luôn chạy)
+                        bool hasUpperLeg = activeBodyParts.Any(p => p.type == BodyPartType.UpperLeg);
                         if (hasUpperLeg)
                         {
                             float kneeBend = (Mathf.Sin(Time.time * walkSpeed + (part.invertPhase ? Mathf.PI : 0)) + 1) * 0.5f * kneeBendAngle;
@@ -213,14 +210,54 @@ public class Enemy : MonoBehaviour
                         else
                         {
                             part.joint.targetRotation = Quaternion.Euler(cycle * hipSwingAngle * phase, 0, 0);
-                            if (part.rb != null && !currentSpeedIsHigh)
-                                part.rb.AddForce(moveDir * moveForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
+                        }
+
+                        // B. Xử lý di chuyển
+                        if (part.rb != null && hip != null)
+                        {
+                            if (useVelocityMovement)
+                            {
+                                // --- CÁCH 1: Dùng VELOCITY (Giống LegMotor cũ) ---
+                                // Đi chính xác, dừng là dừng ngay
+                                Vector3 forwardDir = hip.forward;
+                                forwardDir.y = 0;
+                                forwardDir.Normalize();
+                                Vector3 targetVel = forwardDir * maxSpeed;
+
+                                part.rb.linearVelocity = new Vector3(targetVel.x, part.rb.linearVelocity.y, targetVel.z);
+                            }
+                            else
+                            {
+                                // --- CÁCH 2: Dùng ADDFORCE (Vật lý thuần) ---
+                                // Có đà quán tính, cần ma sát để dừng
+                                if (!currentSpeedIsHigh)
+                                {
+                                    part.rb.AddForce(moveDir * moveForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
+                                }
+                            }
+                        }
+                    }
+                    else if (!isMoving && part.rb != null)
+                    {
+                        // Khi dừng lại
+                        if (useVelocityMovement)
+                        {
+                            // Hãm cứng vận tốc về 0
+                            part.rb.linearVelocity = new Vector3(0, part.rb.linearVelocity.y, 0);
+                        }
+                        else
+                        {
+                            // Nếu dùng AddForce thì ResetLegsOnly() ở trên sẽ lo việc tăng Drag để hãm lại
                         }
                     }
                     break;
+                // -------------------------------------
 
                 case BodyPartType.Foot:
-                    if (isMoving) part.joint.targetRotation = Quaternion.Euler(cycle * 10f * phase, 0, 0);
+                    if (isMoving)
+                    {
+                        part.joint.targetRotation = Quaternion.Euler(cycle * 10f * phase, 0, 0);
+                    }
                     break;
 
                 case BodyPartType.UpperArm:
@@ -247,36 +284,14 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    // --- [CHỈNH SỬA] LOGIC MẮT CHẬM VÀ XOAY RỘNG ---
     void HandleEyeRotation(BodyPart part)
     {
-        // Hệ số ngẫu nhiên để 2 mắt không quay đồng bộ
         float seedOffset = (part.type == BodyPartType.LeftEye) ? 0f : 500f;
-
-        // 1. Tạo chuyển động xoay trục X và Y (Nhìn ngang dọc)
-        // Dùng Perlin Noise nhưng tần số thấp (eyeSpeed) để mượt mà, lờ đờ
-        float noiseX = (Mathf.PerlinNoise(Time.time * eyeSpeed, randomSeed + seedOffset) - 0.5f) * 2f; // Phạm vi -1 đến 1
+        float noiseX = (Mathf.PerlinNoise(Time.time * eyeSpeed, randomSeed + seedOffset) - 0.5f) * 2f;
         float noiseY = (Mathf.PerlinNoise(Time.time * eyeSpeed, randomSeed + seedOffset + 100) - 0.5f) * 2f;
-
-        // Nhân với eyeAngleLimit (Ví dụ 70 độ) để mắt liếc thật rộng
         float lookX = noiseX * eyeAngleLimit;
         float lookY = noiseY * eyeAngleLimit;
-
-        // 2. Tạo chuyển động xoay trục Z (Roll - xoay vòng tròn)
-        float rollZ = 0;
-        if (part.type == BodyPartType.RightEye)
-        {
-            // Mắt phải: Cho phép xoay vòng tròn chậm rãi (Slot machine)
-            // Time.time * 20f: Tốc độ xoay vòng
-            rollZ = (Mathf.Sin(Time.time * 0.5f) * 40f) + (Time.time * 20f);
-        }
-        else
-        {
-            // Mắt trái: Chỉ lắc lư nhẹ trục Z cho đỡ cứng
-            rollZ = Mathf.Sin(Time.time * 2f) * 10f;
-        }
-
-        // 3. Áp dụng xoay
+        float rollZ = (part.type == BodyPartType.RightEye) ? (Mathf.Sin(Time.time * 0.5f) * 40f) + (Time.time * 20f) : Mathf.Sin(Time.time * 2f) * 10f;
         part.obj.transform.localRotation = Quaternion.Euler(lookX, lookY, rollZ);
     }
 
@@ -309,10 +324,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    void ResetMissCounter()
-    {
-        shotsLeftToMiss = Random.Range(minMissShots, maxMissShots + 1);
-    }
+    void ResetMissCounter() => shotsLeftToMiss = Random.Range(minMissShots, maxMissShots + 1);
 
     void ApplyRecoil()
     {
@@ -330,11 +342,16 @@ public class Enemy : MonoBehaviour
     {
         foreach (var part in activeBodyParts)
         {
-            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm ||
-                part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye) continue;
+            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm || part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye) continue;
 
             if (part.joint != null) part.joint.targetRotation = Quaternion.identity;
-            if (part.rb != null) { part.rb.linearDamping = 10f; part.rb.angularDamping = 10f; }
+
+            // Nếu dùng AddForce (useVelocityMovement = false) thì cần tăng ma sát để hãm phanh
+            if (!useVelocityMovement && part.rb != null)
+            {
+                part.rb.linearDamping = 10f;
+                part.rb.angularDamping = 10f;
+            }
         }
     }
 
@@ -342,9 +359,8 @@ public class Enemy : MonoBehaviour
     {
         foreach (var part in activeBodyParts)
         {
-            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm ||
-                part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye) continue;
-
+            if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm || part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye) continue;
+            // Giảm ma sát để di chuyển mượt
             if (part.rb != null) { part.rb.linearDamping = 0f; part.rb.angularDamping = 0.05f; }
         }
     }
@@ -415,15 +431,14 @@ public class Enemy : MonoBehaviour
         foreach (Rigidbody rb in rbs) rb.AddExplosionForce(breakForce, transform.position, breakRadius);
         Destroy(gameObject, 0.1f);
     }
-    // Thêm vào trong class Enemy
+
     public GameObject GetHipObject()
     {
-        // Tìm trong list activeBodyParts xem cái nào là Pelvis (Hông)
         if (isDie) return null;
         var hipPart = activeBodyParts.FirstOrDefault(p => p.type == BodyPartType.Pelvis);
         return hipPart != null ? hipPart.obj : null;
     }
 
     public void SetTarget(Transform target) => this.target = target;
-    public void SetMoving() => isMoving = true;
+    public void SetMoving() => isMoving = isMoveWhenAttacked ? true : false;
 }

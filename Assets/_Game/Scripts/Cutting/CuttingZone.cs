@@ -13,6 +13,8 @@ public class CuttingZone : MonoBehaviour
     // Đối tượng ảo dùng để xác định vị trí cắt ngay tâm
     private GameObject midPointSlicer;
 
+    private int cutCountMax = 3, cutCount = 0;
+
     void Start()
     {
         // Tạo một object rỗng làm con của Zone để dùng làm "lưỡi dao ảo"
@@ -20,43 +22,45 @@ public class CuttingZone : MonoBehaviour
         midPointSlicer.transform.SetParent(transform);
     }
 
-void OnCollisionEnter(Collision collision)
-{
-    // 1. Cố gắng tìm script Enemy từ vật thể bị va chạm
-    // GetComponentInParent sẽ tìm từ vật thể đó ngược lên các cha của nó
-    Enemy enemy = collision.collider.GetComponentInParent<Enemy>();
-
-    if (enemy != null)
+    void OnCollisionEnter(Collision collision)
     {
-        // 2. Nếu trúng kẻ địch, xin nó cái Hông (Pelvis)
-        GameObject hipObj = enemy.GetHipObject();
+        // 1. Cố gắng tìm script Enemy từ vật thể bị va chạm
+        // GetComponentInParent sẽ tìm từ vật thể đó ngược lên các cha của nó
+        if (cutCount >= cutCountMax) return;
+        Enemy enemy = collision.collider.GetComponentInParent<Enemy>();
 
-        if (hipObj != null)
+        if (enemy != null)
         {
-            // 3. Lấy component Sliceable từ cái Hông đó
-            Sliceable bodySliceable = hipObj.GetComponent<Sliceable>();
+            // 2. Nếu trúng kẻ địch, xin nó cái Hông (Pelvis)
+            GameObject hipObj = enemy.GetHipObject();
 
-            // 4. Kiểm tra và thực hiện cắt vào phần thân
-            if (bodySliceable != null && bodySliceable.canBeCut) 
+            if (hipObj != null)
             {
-                // Dù va chạm vào tay/chân, ta vẫn truyền cái Hông vào để xử lý
-                PerformZoneCut(bodySliceable);
+                // 3. Lấy component Sliceable từ cái Hông đó
+                Sliceable bodySliceable = hipObj.GetComponent<Sliceable>();
+
+                // 4. Kiểm tra và thực hiện cắt vào phần thân
+                if (bodySliceable != null && bodySliceable.canBeCut)
+                {
+                    // Dù va chạm vào tay/chân, ta vẫn truyền cái Hông vào để xử lý
+                    PerformZoneCut(bodySliceable);
+                }
+            }
+        }
+        else
+        {
+            // (Tùy chọn) Xử lý logic cũ nếu bắn trúng đồ vật không phải Enemy
+            Sliceable objSliceable = collision.collider.GetComponent<Sliceable>();
+            if (objSliceable != null && objSliceable.canBeCut)
+            {
+                PerformZoneCut(objSliceable);
             }
         }
     }
-    else
-    {
-        // (Tùy chọn) Xử lý logic cũ nếu bắn trúng đồ vật không phải Enemy
-        Sliceable objSliceable = collision.collider.GetComponent<Sliceable>();
-        if (objSliceable != null && objSliceable.canBeCut)
-        {
-             PerformZoneCut(objSliceable);
-        }
-    }
-}
 
     private void PerformZoneCut(Sliceable target)
     {
+        cutCount++;
         // 2. SETUP MẶT PHẲNG CẮT NGAY TÂM
 
         // Bước A: Đưa lưỡi dao ảo đến đúng vị trí của đối tượng bị cắt (Điểm giữa)

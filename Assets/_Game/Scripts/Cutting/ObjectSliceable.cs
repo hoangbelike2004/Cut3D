@@ -59,7 +59,6 @@ public class ObjectSliceable : MonoBehaviour
                 // GỌI EVENT CẮT: Báo cho Observer biết để thực hiện cắt
                 // Lưu ý: Bạn cần đảm bảo bên class Cutting hoặc Observer có xử lý cho Transform này
                 Observer.OnCuttingMultipObject?.Invoke(tfs, transform);
-
                 projectiles.Clear();
             }
             else

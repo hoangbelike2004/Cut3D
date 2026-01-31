@@ -4,4 +4,5 @@ using UnityEngine;
 public class GameSetting : ScriptableObject
 {
     public bool isVibrate = true;
+    public bool isSound = true;
 }

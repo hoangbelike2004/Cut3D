@@ -53,6 +53,7 @@ MonoBehaviour:
   maxMissShots: 5
   inaccuracyAngle: 30
   isMoving: 0
+  isMoveWhenAttacked: 1
   enableRotation: 1
   activeBodyParts:
   - name: 
@@ -97,6 +98,7 @@ MonoBehaviour:
     invertPhase: 0
     rb: {fileID: 0}
     joint: {fileID: 0}
+  useVelocityMovement: 0
   walkSpeed: 3
   maxSpeed: 5
   moveForce: 10

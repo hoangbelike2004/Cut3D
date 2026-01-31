@@ -6,9 +6,9 @@ using UnityEngine.UI;
 
 public class CanvasGameplay : UICanvas
 {
-    [SerializeField] Button btnWardrobe, btnVibrate;
+    [SerializeField] Button btnWardrobe, btnOpenSetting;
 
-    [SerializeField] RectTransform parent, wardrobe, vibrateOf, vibrateOn;
+    [SerializeField] RectTransform parent, wardrobe;
 
     public TextMeshProUGUI txtLevel;
 
@@ -29,22 +29,13 @@ public class CanvasGameplay : UICanvas
         weaponSO = Resources.Load<WeaponSO>(GameConstants.KEY_DATA_GAME_WEAPON);
         itemWeapon = Resources.Load<ItemWeapon>("UI/ItemWeapon");
     }
-    public void SetGameSetting(GameSetting setting)
-    {
-        gameSetting = setting;
-        vibrateOn.gameObject.SetActive(gameSetting.isVibrate);
-        vibrateOf.gameObject.SetActive(!gameSetting.isVibrate);
-    }
     void Start()
     {
         InitItemWeapon();
         btnWardrobe.onClick.AddListener(OpenWardrobe);
-        btnVibrate.onClick.AddListener(() =>
+        btnOpenSetting.onClick.AddListener(() =>
         {
-            if (gameSetting == null) return;
-            gameSetting.isVibrate = !gameSetting.isVibrate;
-            vibrateOn.gameObject.SetActive(gameSetting.isVibrate);
-            vibrateOf.gameObject.SetActive(!gameSetting.isVibrate);
+            UIManager.Instance.OpenUI<CanvasGameSetting>();
         });
     }
 

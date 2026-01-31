@@ -11,11 +11,10 @@ public enum eTypeSound
 
 public enum eAudioName
 {
-    Audio_Button,
-    Audio_Music,
-    Audio_Click,
-    Audio_Drop,
-    Audio_SellectBox,
+    Audio_Cut,
+    Audio_Complete,
+    Audio_Throw,
+    Audio_Stick,
 }
 public class SoundAsset : MonoBehaviour
 {

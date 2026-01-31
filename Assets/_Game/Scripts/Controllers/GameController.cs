@@ -38,7 +38,6 @@ public class GameController : Singleton<GameController>
     void Start()
     {
         canvasGameplay = UIManager.Instance.OpenUI<CanvasGameplay>();
-        canvasGameplay.SetGameSetting(gameSetting);
         StartCoroutine(Playing(true));
     }
     public void SetState(eGameState newState)
@@ -59,6 +58,7 @@ public class GameController : Singleton<GameController>
     }
     public void GameComplete()
     {
+        SoundManager.Instance.PlaySound(eAudioName.Audio_Complete);
         currentLevel++;
         WeaponManager.Instance.SetWeapon(currentLevel);
         canvasGameplay.ShowGameComplete();

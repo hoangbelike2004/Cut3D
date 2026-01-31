@@ -27,14 +27,14 @@ public class SoundManager : Singleton<SoundManager>
         }
         else if (audioAsset.type == eTypeSound.Sound)
         {
-            // if (gameSetting.isSound)
-            // {
-            //     Sound prefab = SimplePool.Spawn<Sound>(PoolType.Audio_Sources, Vector2.zero, Quaternion.identity);
-            //     prefab.audioSource.clip = audioAsset.clip;
-            //     prefab.audioSource.volume = 1;
-            //     prefab.audioSource.Play();
-            //     StartCoroutine(WaitDespawnSound(prefab, audioAsset.lenght));
-            // }
+            if (gameSetting.isSound)
+            {
+                Sound prefab = SimplePool.Spawn<Sound>(PoolType.Audio_Sources, Vector2.zero, Quaternion.identity);
+                prefab.audioSource.clip = audioAsset.clip;
+                prefab.audioSource.volume = 1;
+                prefab.audioSource.Play();
+                StartCoroutine(WaitDespawnSound(prefab, audioAsset.lenght));
+            }
         }
     }
 
