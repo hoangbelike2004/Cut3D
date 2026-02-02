@@ -18,6 +18,9 @@ public class Enemy : MonoBehaviour
         [HideInInspector] public ConfigurableJoint joint;
     }
 
+    [Header("--- TRẠNG THÁI NGỦ (MỚI) ---")]
+    public bool isSleeping = false;
+
     [Header("LOẠI KẺ ĐỊCH")]
     public EnemyType enemyType = EnemyType.Melee;
 
@@ -42,12 +45,13 @@ public class Enemy : MonoBehaviour
 
     [Header("Thông số Animation & Di Chuyển")]
     [Tooltip("Bật = Di chuyển bằng Velocity (Chắc chắn). Tắt = Di chuyển bằng Force (Quán tính)")]
-    public bool useVelocityMovement; // <--- BIẾN BẠN CẦN Ở ĐÂY
+    public bool useVelocityMovement;
 
     public float walkSpeed = 3f;
-    public float maxSpeed = 5f; // Tốc độ tối đa (Dùng cho cả 2 kiểu)
-    public float moveForce = 50f; // Lực đẩy (Dùng khi useVelocityMovement = false)
+    public float maxSpeed = 5f;
+    public float moveForce = 50f;
     public float stopDistance = 1.0f;
+    public int HP => hp;
 
     [Header("Animation Settings")]
     public float hipSwingAngle = 45f;
@@ -74,6 +78,8 @@ public class Enemy : MonoBehaviour
     private Level level;
     private float randomSeed;
 
+    private Dictionary<ConfigurableJoint, float> initialJointSprings = new Dictionary<ConfigurableJoint, float>();
+
     void Awake()
     {
         if (transform.root.GetComponent<Level>() != null)
@@ -83,12 +89,17 @@ public class Enemy : MonoBehaviour
         }
 
         AutoSetupBodyParts();
+        SaveInitialSprings();
         randomSeed = Random.Range(0f, 100f);
 
         if (enemyType == EnemyType.Ranged)
         {
             ResetMissCounter();
             nextFireTime = Time.time + fireRate;
+        }
+        if (isSleeping)
+        {
+            GoToSleep();
         }
     }
 
@@ -113,6 +124,55 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    void SaveInitialSprings()
+    {
+        initialJointSprings.Clear();
+        foreach (var part in activeBodyParts)
+        {
+            if (part.joint != null)
+            {
+                initialJointSprings[part.joint] = part.joint.angularXDrive.positionSpring;
+            }
+        }
+    }
+
+    public void GoToSleep()
+    {
+        if (isSleeping) return;
+        isSleeping = true;
+        isMoving = false;
+
+        foreach (var part in activeBodyParts)
+        {
+            if (part.joint != null)
+            {
+                var drive = part.joint.angularXDrive;
+                drive.positionSpring = 0;
+                part.joint.angularXDrive = drive;
+                part.joint.angularYZDrive = drive;
+            }
+        }
+    }
+
+    public void WakeUp()
+    {
+        if (!isSleeping) return;
+        isSleeping = false;
+        if (isMoveWhenAttacked) isMoving = true;
+
+        foreach (var part in activeBodyParts)
+        {
+            if (part.joint != null && initialJointSprings.ContainsKey(part.joint))
+            {
+                float originalSpring = initialJointSprings[part.joint];
+                var drive = part.joint.angularXDrive;
+                drive.positionSpring = originalSpring;
+                part.joint.angularXDrive = drive;
+                part.joint.angularYZDrive = drive;
+            }
+        }
+    }
+
     public GameObject GetHeadObject()
     {
         var headPart = activeBodyParts.FirstOrDefault(p => p.type == BodyPartType.Head);
@@ -122,11 +182,12 @@ public class Enemy : MonoBehaviour
     void FixedUpdate()
     {
         if (target == null || hip == null || isDie) return;
+        if (isSleeping) return;
 
         float distance = Vector3.Distance(new Vector3(hip.position.x, 0, hip.position.z),
                                           new Vector3(target.position.x, 0, target.position.z));
 
-        // --- 1. XOAY NGƯỜI ---
+        // --- 1. XOAY HÔNG ---
         if (enableRotation)
         {
             Vector3 dir = (target.position - hip.position).normalized;
@@ -162,7 +223,6 @@ public class Enemy : MonoBehaviour
         }
 
         // --- 3. ANIMATION & MOVEMENT ---
-        // Nếu dùng Velocity thì không cần Reset Drag vì ta set vận tốc trực tiếp
         if (isMoving && !useVelocityMovement) ResetDragForMovement();
 
         Vector3 moveDir = (target.position - hip.position).normalized;
@@ -175,7 +235,6 @@ public class Enemy : MonoBehaviour
         {
             if (part == null || part.obj == null || !part.obj.activeInHierarchy) continue;
 
-            // Xử lý Mắt
             if (part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye)
             {
                 HandleEyeRotation(part);
@@ -188,19 +247,53 @@ public class Enemy : MonoBehaviour
 
             switch (part.type)
             {
-                case BodyPartType.UpperLeg:
-                    if (isMoving)
+                // =================================================================
+                // [MỚI] CHỈNH SỬA PHẦN ĐẦU CHỈ XOAY Y
+                // =================================================================
+
+                case BodyPartType.Head:
+                    if (target != null && part.joint.connectedBody != null)
                     {
-                        part.joint.targetRotation = Quaternion.Euler(cycle * hipSwingAngle * phase, 0, 0);
-                        // UpperLeg chỉ Animation, không tham gia đẩy lực để tránh xung đột
+                        Vector3 dirToTarget = (target.position - part.obj.transform.position).normalized;
+
+                        // Tính góc nhìn thế giới
+                        Quaternion worldLook = Quaternion.LookRotation(dirToTarget, Vector3.up);
+
+                        // Chuyển sang góc Local so với Body
+                        Quaternion localLook = Quaternion.Inverse(part.joint.connectedBody.rotation) * worldLook;
+
+                        // [TRỌNG TÂM] Chỉ lấy góc Y (Yaw), ép X và Z về 0
+                        Vector3 localEuler = localLook.eulerAngles;
+                        Quaternion yOnlyRotation = Quaternion.Euler(0, localEuler.y, 0);
+
+                        // ConfigurableJoint TargetRotation là Inverse của Local Rotation
+                        Quaternion targetJointRot = Quaternion.Inverse(yOnlyRotation);
+
+                        part.joint.targetRotation = Quaternion.Slerp(part.joint.targetRotation, targetJointRot, 10f * Time.fixedDeltaTime);
                     }
                     break;
 
-                // --- [ĐÂY LÀ PHẦN QUAN TRỌNG NHẤT] ---
-                case BodyPartType.LowerLeg: // Bắp chân
+                case BodyPartType.Spine:
+                    // Spine vẫn giữ xoay tự do (hoặc bạn có thể áp dụng logic Y-only nếu muốn spine cứng)
+                    if (target != null && part.joint.connectedBody != null)
+                    {
+                        Vector3 dirToTarget = (target.position - part.obj.transform.position).normalized;
+                        Quaternion worldLook = Quaternion.LookRotation(dirToTarget, Vector3.up);
+                        Quaternion localLook = Quaternion.Inverse(part.joint.connectedBody.rotation) * worldLook;
+                        Quaternion targetJointRot = Quaternion.Inverse(localLook);
+                        part.joint.targetRotation = Quaternion.Slerp(part.joint.targetRotation, targetJointRot, 10f * Time.fixedDeltaTime);
+                    }
+                    break;
+                // =================================================================
+
+                case BodyPartType.UpperLeg:
+                    if (isMoving)
+                        part.joint.targetRotation = Quaternion.Euler(cycle * hipSwingAngle * phase, 0, 0);
+                    break;
+
+                case BodyPartType.LowerLeg:
                     if (isMoving)
                     {
-                        // A. Animation Gập Gối (Luôn chạy)
                         bool hasUpperLeg = activeBodyParts.Any(p => p.type == BodyPartType.UpperLeg);
                         if (hasUpperLeg)
                         {
@@ -212,52 +305,32 @@ public class Enemy : MonoBehaviour
                             part.joint.targetRotation = Quaternion.Euler(cycle * hipSwingAngle * phase, 0, 0);
                         }
 
-                        // B. Xử lý di chuyển
                         if (part.rb != null && hip != null)
                         {
                             if (useVelocityMovement)
                             {
-                                // --- CÁCH 1: Dùng VELOCITY (Giống LegMotor cũ) ---
-                                // Đi chính xác, dừng là dừng ngay
                                 Vector3 forwardDir = hip.forward;
                                 forwardDir.y = 0;
                                 forwardDir.Normalize();
                                 Vector3 targetVel = forwardDir * maxSpeed;
-
                                 part.rb.linearVelocity = new Vector3(targetVel.x, part.rb.linearVelocity.y, targetVel.z);
                             }
                             else
                             {
-                                // --- CÁCH 2: Dùng ADDFORCE (Vật lý thuần) ---
-                                // Có đà quán tính, cần ma sát để dừng
                                 if (!currentSpeedIsHigh)
-                                {
                                     part.rb.AddForce(moveDir * moveForce * Time.fixedDeltaTime, ForceMode.VelocityChange);
-                                }
                             }
                         }
                     }
-                    else if (!isMoving && part.rb != null)
+                    else if (!isMoving && part.rb != null && useVelocityMovement)
                     {
-                        // Khi dừng lại
-                        if (useVelocityMovement)
-                        {
-                            // Hãm cứng vận tốc về 0
-                            part.rb.linearVelocity = new Vector3(0, part.rb.linearVelocity.y, 0);
-                        }
-                        else
-                        {
-                            // Nếu dùng AddForce thì ResetLegsOnly() ở trên sẽ lo việc tăng Drag để hãm lại
-                        }
+                        part.rb.linearVelocity = new Vector3(0, part.rb.linearVelocity.y, 0);
                     }
                     break;
-                // -------------------------------------
 
                 case BodyPartType.Foot:
                     if (isMoving)
-                    {
                         part.joint.targetRotation = Quaternion.Euler(cycle * 10f * phase, 0, 0);
-                    }
                     break;
 
                 case BodyPartType.UpperArm:
@@ -283,6 +356,8 @@ public class Enemy : MonoBehaviour
             }
         }
     }
+
+    // ... (Giữ nguyên phần còn lại của code: HandleEyeRotation, ShootBehavior, v.v...) ...
 
     void HandleEyeRotation(BodyPart part)
     {
@@ -334,6 +409,7 @@ public class Enemy : MonoBehaviour
 
         if (partToRecoil != null && partToRecoil.rb != null && objectCamFolow != null)
         {
+            Debug.Log(partToRecoil.obj.name + " recoil applied.");
             partToRecoil.rb.AddForce(objectCamFolow.forward * recoilForce, ForceMode.Impulse);
         }
     }
@@ -346,7 +422,6 @@ public class Enemy : MonoBehaviour
 
             if (part.joint != null) part.joint.targetRotation = Quaternion.identity;
 
-            // Nếu dùng AddForce (useVelocityMovement = false) thì cần tăng ma sát để hãm phanh
             if (!useVelocityMovement && part.rb != null)
             {
                 part.rb.linearDamping = 10f;
@@ -360,7 +435,6 @@ public class Enemy : MonoBehaviour
         foreach (var part in activeBodyParts)
         {
             if (part.type == BodyPartType.UpperArm || part.type == BodyPartType.LowerArm || part.type == BodyPartType.LeftEye || part.type == BodyPartType.RightEye) continue;
-            // Giảm ma sát để di chuyển mượt
             if (part.rb != null) { part.rb.linearDamping = 0f; part.rb.angularDamping = 0.05f; }
         }
     }
@@ -440,5 +514,13 @@ public class Enemy : MonoBehaviour
     }
 
     public void SetTarget(Transform target) => this.target = target;
-    public void SetMoving() => isMoving = isMoveWhenAttacked ? true : false;
+    public void SetMoving()
+    {
+        if (isSleeping)
+        {
+            WakeUp();
+            return;
+        }
+        isMoving = isMoveWhenAttacked ? true : false;
+    }
 }

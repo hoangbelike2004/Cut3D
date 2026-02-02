@@ -43,7 +43,10 @@ public class Sliceable : MonoBehaviour
     {
         if (!projectiles.Contains(projectile))
         {
-            if (parent != null) parent.SetMoving();
+            if (parent != null)
+            {
+                parent.SetMoving();
+            }
             projectiles.Add(projectile);
             currentHitCount++;
 
@@ -54,6 +57,7 @@ public class Sliceable : MonoBehaviour
             {
                 // Xử lý khi bị vỡ (Slice)
                 List<Transform> tfs = projectiles.ConvertAll(x => x.transform);
+                if (parent != null) parent.Hit(projectiles.Count * damage);
                 Observer.OnCuttingMultipObject?.Invoke(tfs, transform);
                 for (int i = 0; i < tfs.Count; i++)
                 {
@@ -62,7 +66,6 @@ public class Sliceable : MonoBehaviour
                         projectiles[i].DespawnSelf();
                     }
                 }
-                if (parent != null) parent.Hit(projectiles.Count * damage);
                 GameController.Instance.DelayGame();
 
                 projectiles.Clear();
