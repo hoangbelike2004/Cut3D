@@ -15,29 +15,29 @@ MonoBehaviour:
   weapons:
   - Type: 2
     stateWeapon: 2
-    icon: {fileID: 21300000, guid: 05148ebfa9ab54ae983fd829bbfbf4f7, type: 3}
+    icon: {fileID: 21300000, guid: a18f228dafee542a891e75911cdda866, type: 3}
     goal: 1
   - Type: 4
     stateWeapon: 0
-    icon: {fileID: 723790518, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    icon: {fileID: 21300000, guid: 8877b367d34d54206ac03d9077e54676, type: 3}
     goal: 6
   - Type: 5
     stateWeapon: 0
-    icon: {fileID: -1489964805, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    icon: {fileID: 21300000, guid: 4567e0d5b76ae43b198d0d57adff7139, type: 3}
     goal: 10
   - Type: 6
     stateWeapon: 0
-    icon: {fileID: -775111129, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    icon: {fileID: 21300000, guid: 90e5f05b739224f3dad566f60e55a316, type: 3}
     goal: 20
   - Type: 7
     stateWeapon: 0
-    icon: {fileID: 21300000, guid: 2b5527ce0f67e465dbaf351f8acd7a77, type: 3}
+    icon: {fileID: 21300000, guid: f5f2a8b76fe254cfd9d75f1fa7147c44, type: 3}
     goal: 30
   - Type: 8
     stateWeapon: 0
-    icon: {fileID: 21300000, guid: 37e17f287a26b4e94a4a4844d6999de7, type: 3}
+    icon: {fileID: 21300000, guid: 84df06988c161478caf686c89430425c, type: 3}
     goal: 40
   - Type: 9
     stateWeapon: 0
-    icon: {fileID: -1821442522, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
+    icon: {fileID: 21300000, guid: 0bd1b87f225144205a68e53b84ae13b9, type: 3}
     goal: 50
