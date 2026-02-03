@@ -5,7 +5,7 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Cài đặt Game")]
     [Tooltip("Khoảng cách kéo chuột (Pixel) để đạt Scale tối đa")]
-    public float maxDragDistance = 400f;
+    private float maxDragDistance = 1200f;
 
     [Tooltip("Khoảng cách kéo tối thiểu. Nếu ngắn hơn mức này sẽ không ném.")]
     public float minDragDistance = 10f;
@@ -34,7 +34,7 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        weapontype = WeaponManager.Instance.WeaponSellect.Type;
+        weapontype = GameController.Instance.WeaponSellect.Type;
         mainCamera = Camera.main;
         _level = transform.root.GetComponent<Level>();
         _level.SetPlayer(this);
@@ -104,8 +104,10 @@ public class PlayerController : MonoBehaviour
     // --- ĐÂY LÀ HÀM ĐÃ ĐƯỢC CHỈNH SỬA ---
     void ProcessThrowLogic(float dragDistance)
     {
+        Debug.Log($"Drag Distance: {dragDistance}");
         // 1. TÍNH SCALE
-        float powerRatio = Mathf.Clamp(dragDistance / maxDragDistance, 0.1f, 1f);
+        float powerRatio = Mathf.Clamp(dragDistance / maxDragDistance, 0.01f, 5f);
+
         float finalScale = Mathf.Lerp(minScale, maxScale, powerRatio);
 
         // 2. TÌM MỤC TIÊU

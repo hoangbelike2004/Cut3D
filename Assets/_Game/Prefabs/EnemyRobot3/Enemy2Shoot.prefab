@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77a0427c46c5f497ba2deea48f8dc7f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  isSleeping: 0
   enemyType: 1
   attackRange: 50
   fireRate: 5
@@ -138,7 +139,7 @@ Transform:
   m_GameObject: {fileID: 1909987498275329414}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.013999999, z: 0.221}
+  m_LocalPosition: {x: 0, y: -0.013999999, z: 0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

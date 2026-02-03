@@ -1054,7 +1054,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameController
   isStop: 0
-  currentLevel: 49
+  currentLevel: 1
   timeLoadLevel: 4
   timeWaitForDelay: 1
   timeScale: 0.1

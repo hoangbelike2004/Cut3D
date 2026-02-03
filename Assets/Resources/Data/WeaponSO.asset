@@ -20,24 +20,24 @@ MonoBehaviour:
   - Type: 4
     stateWeapon: 0
     icon: {fileID: 723790518, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
-    goal: 3
+    goal: 6
   - Type: 5
     stateWeapon: 0
     icon: {fileID: -1489964805, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
-    goal: 5
+    goal: 10
   - Type: 6
     stateWeapon: 0
     icon: {fileID: -775111129, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
-    goal: 7
+    goal: 20
   - Type: 7
     stateWeapon: 0
     icon: {fileID: 21300000, guid: 2b5527ce0f67e465dbaf351f8acd7a77, type: 3}
-    goal: 9
+    goal: 30
   - Type: 8
     stateWeapon: 0
     icon: {fileID: 21300000, guid: 37e17f287a26b4e94a4a4844d6999de7, type: 3}
-    goal: 11
+    goal: 40
   - Type: 9
     stateWeapon: 0
     icon: {fileID: -1821442522, guid: e21242bc700ec40199d49eeb3b2ed5f0, type: 3}
-    goal: 13
+    goal: 50

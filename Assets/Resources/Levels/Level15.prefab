@@ -452,7 +452,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -2.5665102, z: -18.529789}
-  m_LocalScale: {x: 15, y: 1, z: 30}
+  m_LocalScale: {x: 25, y: 1, z: 50}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5827929519370320368}
@@ -490,7 +490,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 3205e1fbdd036421db50945200d5fb74, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -588,7 +588,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1988073683216135799, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
       propertyPath: m_Mass
-      value: 0.1
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2013857573694131866, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
       propertyPath: currentHitCountMax
@@ -615,16 +615,20 @@ PrefabInstance:
       value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 2822788998926420703, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
-      propertyPath: maxSpeed
+      propertyPath: isMoving
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2822788998926420703, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
+      propertyPath: maxSpeed
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 2822788998926420703, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
       propertyPath: moveForce
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 2822788998926420703, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
       propertyPath: walkSpeed
-      value: 0
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 3087951602491323575, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
       propertyPath: m_Center.z
@@ -668,11 +672,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8047180797218340962, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
       propertyPath: m_AngularXDrive.positionSpring
-      value: 1600
+      value: 800
       objectReference: {fileID: 0}
     - target: {fileID: 8047180797218340962, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
       propertyPath: m_AngularYZDrive.positionSpring
-      value: 1600
+      value: 800
       objectReference: {fileID: 0}
     - target: {fileID: 8643613883294656745, guid: adbd85259ddb34bfe896e25637fc9485, type: 3}
       propertyPath: m_Center.z
@@ -862,15 +866,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9038892588944286766, guid: 86e43ea2a8cb943a09cd9d463e5c6c3d, type: 3}
       propertyPath: maxSpeed
-      value: 0
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 9038892588944286766, guid: 86e43ea2a8cb943a09cd9d463e5c6c3d, type: 3}
       propertyPath: moveForce
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 9038892588944286766, guid: 86e43ea2a8cb943a09cd9d463e5c6c3d, type: 3}
       propertyPath: walkSpeed
-      value: 0
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

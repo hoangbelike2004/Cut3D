@@ -31,13 +31,25 @@ public class GameController : Singleton<GameController>
     private GameSetting gameSetting;
 
     private eGameState currentState;
+
+    private int maxLevel;
+
+    private WeaponManager weaponManager;
     void Awake()
     {
         gameSetting = Resources.Load<GameSetting>(GameConstants.KEY_DATA_GAME_SETTING);
+        GameObject[] gameObjects = Resources.LoadAll<GameObject>("Levels");
+        maxLevel = gameObjects.Length;
+        weaponManager = new GameObject("WeaponManager").AddComponent<WeaponManager>();
+        if (PlayerPrefs.HasKey(GameConstants.KEY_SAVE_DATA))
+        {
+            currentLevel = PlayerPrefs.GetInt(GameConstants.KEY_SAVE_DATA);
+        }
     }
     void Start()
     {
         canvasGameplay = UIManager.Instance.OpenUI<CanvasGameplay>();
+        canvasGameplay.SetIconButtonWeapon(weaponManager.WeaponSellect.icon);
         StartCoroutine(Playing(true));
     }
     public void SetState(eGameState newState)
@@ -60,23 +72,20 @@ public class GameController : Singleton<GameController>
     {
         SoundManager.Instance.PlaySound(eAudioName.Audio_Complete);
         currentLevel++;
-        WeaponManager.Instance.SetWeapon(currentLevel);
+        weaponManager.SetWeapon(currentLevel);
         canvasGameplay.ShowGameComplete();
         StartCoroutine(Playing(false));
-        //Invoke(nameof(LoadLevel), timeLoadLevel);
     }
 
     public void ReplayGame()
     {
         canvasGameplay.ShowGameLose();
         StartCoroutine(Playing(false));
-        //Invoke(nameof(LoadLevel), timeLoadLevel);
     }
     IEnumerator Playing(bool isStart)
     {
         if (!isStart)
         {
-
             yield return new WaitForSeconds(timeLoadLevel);
         }
         else
@@ -100,7 +109,14 @@ public class GameController : Singleton<GameController>
             level = null;
         }
         currentState = eGameState.Playing;
-        level = Resources.Load<Level>(GameConstants.KEY_LEVEL + currentLevel);
+        int tmp = 0;
+        if (currentLevel <= maxLevel) tmp = currentLevel;
+        else
+        {
+            tmp = currentLevel % maxLevel;
+            if (tmp == 0) tmp = maxLevel;
+        }
+        level = Resources.Load<Level>(GameConstants.KEY_LEVEL + tmp);
         level = Instantiate(level);
     }
     public void DelayGame()
@@ -125,12 +141,11 @@ public class GameController : Singleton<GameController>
         Time.timeScale = 1f;
         Time.fixedDeltaTime = 0.02f; // Trả lại mặc định của Unity
     }
-
+    public WeaponData WeaponSellect => weaponManager.WeaponSellect;
     public void OnWardrobe(bool isOpen)
     {
         isStop = isOpen;
     }
-
     public void Vibrate()
     {
         if (gameSetting != null && !gameSetting.isVibrate)
@@ -138,6 +153,22 @@ public class GameController : Singleton<GameController>
             return;
         }
         HapticFeedback.LightFeedback();
+    }
+    private void OnApplicationQuit()
+    {
+        PlayerPrefs.SetInt(GameConstants.KEY_SAVE_DATA, currentLevel);
+    }
+    private void OnApplicationPause(bool pause)
+    {
+        if (pause)
+        {
+            PlayerPrefs.SetInt(GameConstants.KEY_SAVE_DATA, currentLevel);
+        }
+    }
+    public void SellectWeapon(WeaponData weaponData)
+    {
+        weaponManager.SellectWeapon(weaponData);
+        canvasGameplay.SetIconButtonWeapon(weaponData.icon);
     }
     void OnEnable()
     {

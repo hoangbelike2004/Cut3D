@@ -68,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 3205e1fbdd036421db50945200d5fb74, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -346,15 +346,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1803508924200892281, guid: 3adca7cebf3ff4bbdb474fc24908f93a, type: 3}
       propertyPath: maxSpeed
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 1803508924200892281, guid: 3adca7cebf3ff4bbdb474fc24908f93a, type: 3}
       propertyPath: moveForce
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 1803508924200892281, guid: 3adca7cebf3ff4bbdb474fc24908f93a, type: 3}
       propertyPath: walkSpeed
-      value: 10
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 1803508924200892281, guid: 3adca7cebf3ff4bbdb474fc24908f93a, type: 3}
       propertyPath: stopDistance

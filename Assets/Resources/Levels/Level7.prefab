@@ -1135,7 +1135,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 3205e1fbdd036421db50945200d5fb74, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1549,6 +1549,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77a0427c46c5f497ba2deea48f8dc7f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  isSleeping: 0
   enemyType: 0
   attackRange: 10
   fireRate: 2
@@ -2709,7 +2710,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 984db495d131a4b0ba153c92147b302a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  maxDragDistance: 400
   minDragDistance: 10
   isStraight: 0
   distanceFromCamera: 5
@@ -3266,7 +3266,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 2
   m_CollisionDetection: 0
 --- !u!153 &3337916490059469302
 ConfigurableJoint:

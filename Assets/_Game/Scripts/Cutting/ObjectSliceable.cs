@@ -67,9 +67,9 @@ public class ObjectSliceable : MonoBehaviour
                 {
                     // 1. Tạo GameObject rỗng
                     GameObject container = new GameObject("Stuck_Container");
-
+                    container.transform.SetParent(transform.parent);
                     // 2. Set nó làm con của Sliceable này
-                    container.transform.SetParent(transform);
+                    transform.SetParent(container.transform);
 
                     // ---------------------------------
 

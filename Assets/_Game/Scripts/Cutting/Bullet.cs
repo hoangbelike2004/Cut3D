@@ -45,6 +45,10 @@ public class Bullet : GameUnit
             DespawnSelf();
         }
     }
+    void OnCollisionEnter(Collision collision)
+    {
+        DespawnSelf();
+    }
 
     void DespawnSelf()
     {

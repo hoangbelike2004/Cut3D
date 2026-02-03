@@ -9,5 +9,9 @@ public class DeadZone : MonoBehaviour
         {
             sliceable.GetParent.Hit(10000);
         }
+        if (other.CompareTag("Player"))
+        {
+            if (GameController.Instance != null) GameController.Instance.SetState(eGameState.GameOver);
+        }
     }
 }

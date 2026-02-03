@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,6 +7,8 @@ public class ItemWeapon : MonoBehaviour
     [SerializeField] private Button btnClick;
     [SerializeField] private Image iconWeapon;
     [SerializeField] private RectTransform rectLock, rectSelect;
+
+    [SerializeField] private TextMeshProUGUI txt;
     private WeaponData weaponData;
     void Start()
     {
@@ -16,7 +19,7 @@ public class ItemWeapon : MonoBehaviour
     {
         if (weaponData == null) return;
         if (weaponData.stateWeapon == eStateWeapon.Lock) return;
-        WeaponManager.Instance.SellectWeapon(weaponData);
+        GameController.Instance.SellectWeapon(weaponData);
     }
 
     public void SetData(WeaponData data)
@@ -25,6 +28,7 @@ public class ItemWeapon : MonoBehaviour
         if (weaponData.icon != null)
         {
             iconWeapon.sprite = weaponData.icon;
+            txt.text = "Lv." + weaponData.goal;
         }
         UpdateUI();
     }

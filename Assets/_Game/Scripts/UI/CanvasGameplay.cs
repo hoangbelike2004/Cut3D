@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class CanvasGameplay : UICanvas
 {
-    [SerializeField] Button btnWardrobe, btnOpenSetting;
+    [SerializeField] Button btnWardrobe, btnOpenSetting, btnClose;
 
     [SerializeField] RectTransform parent, wardrobe;
 
@@ -14,6 +14,8 @@ public class CanvasGameplay : UICanvas
 
     public RectTransform rectGamecomplete;
     public RectTransform rectGameLose;
+
+    public Image imgWeapon;
 
     private WeaponSO weaponSO;
 
@@ -24,6 +26,8 @@ public class CanvasGameplay : UICanvas
     private bool isOpenWardrobe = false;
 
     private GameSetting gameSetting;
+
+    private WeaponManager weaponManager;
     void Awake()
     {
         weaponSO = Resources.Load<WeaponSO>(GameConstants.KEY_DATA_GAME_WEAPON);
@@ -36,6 +40,11 @@ public class CanvasGameplay : UICanvas
         btnOpenSetting.onClick.AddListener(() =>
         {
             UIManager.Instance.OpenUI<CanvasGameSetting>();
+        });
+        btnClose.onClick.AddListener(() =>
+        {
+            wardrobe.gameObject.SetActive(false);
+            Observer.OnOpenWardrobe?.Invoke(isOpenWardrobe);
         });
     }
 
@@ -50,8 +59,7 @@ public class CanvasGameplay : UICanvas
     }
     public void OpenWardrobe()
     {
-        isOpenWardrobe = !isOpenWardrobe;
-        wardrobe.gameObject.SetActive(isOpenWardrobe);
+        wardrobe.gameObject.SetActive(true);
         Observer.OnOpenWardrobe?.Invoke(isOpenWardrobe);
 
     }
@@ -65,6 +73,11 @@ public class CanvasGameplay : UICanvas
         {
             dictItemWeapon[weaponData].UpdateUI();
         }
+    }
+
+    public void SetIconButtonWeapon(Sprite sprite)
+    {
+        imgWeapon.sprite = sprite;
     }
 
     public void OnSellectItem(WeaponData weaponData)

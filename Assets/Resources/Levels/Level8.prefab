@@ -1026,7 +1026,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 3205e1fbdd036421db50945200d5fb74, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1181,7 +1181,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 3205e1fbdd036421db50945200d5fb74, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1747,7 +1747,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 3205e1fbdd036421db50945200d5fb74, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3459,6 +3459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77a0427c46c5f497ba2deea48f8dc7f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  isSleeping: 0
   enemyType: 0
   attackRange: 10
   fireRate: 2
@@ -3467,6 +3468,7 @@ MonoBehaviour:
   maxMissShots: 5
   inaccuracyAngle: 15
   isMoving: 0
+  isMoveWhenAttacked: 1
   enableRotation: 1
   activeBodyParts:
   - name: 
@@ -3529,15 +3531,16 @@ MonoBehaviour:
     invertPhase: 0
     rb: {fileID: 0}
     joint: {fileID: 0}
+  useVelocityMovement: 0
   walkSpeed: 3
   maxSpeed: 4
   moveForce: 5
   stopDistance: 1
   hipSwingAngle: 45
   kneeBendAngle: 40
-  armFlailSpeed: 8
-  armFlailRange: 60
-  elbowShake: 45
+  armFlailSpeed: 0
+  armFlailRange: 0
+  elbowShake: 0
   eyeSpeed: 1.5
   eyeAngleLimit: 70
   objectCamFolow: {fileID: 3789742999424470362}
